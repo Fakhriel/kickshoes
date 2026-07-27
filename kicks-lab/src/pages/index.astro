@@ -1,0 +1,40 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Navbar from "../components/Navbar.astro";
+import Hero from "../components/Hero.astro";
+import ProductGrid from "../components/ProductGrid.astro";
+import Footer from "../components/Footer.astro";
+
+// SSR — ProductGrid fetch data langsung dari backend Express saat
+// halaman dibuka, supaya stok & harga selalu sesuai database.
+export const prerender = false;
+---
+
+<Layout
+  title="STRIDE — Sepatu Pria & Wanita Pilihan"
+  description="STRIDE. Sepatu untuk yang nggak jalan biasa-biasa aja. Koleksi pria & wanita, kualitas premium, desain yang berani."
+>
+  <Navbar />
+  <Hero
+    carouselImages={[
+      "/herobg/download1.webp",
+      "/herobg/newbalance.webp",
+      "/herobg/nike.webp",
+    ]}
+    brandLogos={[
+      "/brands/brand1.webp",
+      "/brands/brand2.webp",
+      "/brands/brand3.webp",
+      "/brands/brand4.webp",
+      "/brands/brand5.webp",
+      "/brands/brand6.webp",
+      "/brands/brand7.webp",
+      "/brands/brand8.webp",
+      "/brands/brand9.webp",
+      "/brands/brand10.webp",
+    ]}
+    autoplayInterval={5000}
+  />
+  <ProductGrid/>
+  <Footer/>
+</Layout>

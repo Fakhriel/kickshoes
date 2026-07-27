@@ -1,0 +1,155 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Navbar from "../components/Navbar.astro";
+import Footer from "../components/Footer.astro";
+import ProductCard from "../components/ProductCard.astro";
+import CatalogToolbar from "../components/CatalogToolbar.astro";
+import CategoryPosterGrid from "../components/CategoryPosterGrid.astro";
+import { categoryPostersTop, categoryPostersBottom } from "../data/CategoryPosters";
+
+export const prerender = false;
+
+const API_URL = import.meta.env.PUBLIC_API_URL || "http://localhost:4000";
+
+interface ProductListItem {
+  id: string;
+  slug: string;
+  name: string;
+  category: string;
+  price: number;
+  originalPrice?: number | null;
+  image: string;
+  badge?: "Baru" | "Diskon" | "Terlaris" | null;
+  createdAt: string;
+}
+
+let products: ProductListItem[] = [];
+let fetchFailed = false;
+
+// "Koleksi Baru" = semua produk, terbaru lebih dulu — backend sudah
+// default sort=terbaru, jadi tidak perlu sort ulang di sini.
+try {
+  const res = await fetch(`${API_URL}/api/products?sort=terbaru`);
+  if (res.ok) {
+    const json = await res.json();
+    products = json.data ?? [];
+  } else {
+    fetchFailed = true;
+  }
+} catch (err) {
+  console.error("[koleksi-baru.astro] gagal fetch backend:", err);
+  fetchFailed = true;
+}
+---
+
+<Layout
+  title="Koleksi Baru — STRIDE"
+  description="Rilis terbaru STRIDE — jelajahi kategori dan produk paling baru."
+>
+  <Navbar />
+
+  <main class="bg-paper">
+    <!-- Page header -->
+    <section class="border-b border-ink pt-24 sm:pt-28 md:pt-32 pb-8 sm:pb-10">
+      <div class="max-w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
+        <p class="font-mono text-xs text-smoke uppercase tracking-wide mb-3">
+          Beranda / Koleksi Baru
+        </p>
+        <h1 class="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-ink leading-none">
+          Koleksi Baru
+        </h1>
+      </div>
+    </section>
+
+    <!-- Grid poster kategori (atas) -->
+    <section class="max-w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-8 sm:py-10 md:py-12">
+      <p class="font-mono text-xs text-smoke uppercase tracking-wide mb-4 sm:mb-5">
+        Jelajahi Kategori
+      </p>
+      <CategoryPosterGrid posters={categoryPostersTop} />
+    </section>
+
+    <!-- Toolbar + Grid produk -->
+    <section class="max-w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-8 sm:py-10 md:py-12 border-t border-hairline">
+      <CatalogToolbar count={products.length} sortId="sort-koleksi-baru" />
+
+      <div
+        id="product-grid"
+        class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5"
+      >
+        {products.map((product) => (
+          <div
+            class="grid-item"
+            data-price={product.price}
+            data-created={product.createdAt}
+          >
+            <ProductCard
+              id={product.id}
+              slug={product.slug}
+              name={product.name}
+              category={product.category}
+              price={product.price}
+              originalPrice={product.originalPrice}
+              image={product.image}
+              badge={product.badge}
+            />
+          </div>
+        ))}
+      </div>
+
+      {fetchFailed && (
+        <p class="font-mono text-sm text-signal text-center py-16">
+          Gagal memuat produk. Coba muat ulang halaman.
+        </p>
+      )}
+
+      {!fetchFailed && products.length === 0 && (
+        <p class="font-body text-sm text-smoke text-center py-16">
+          Belum ada produk baru saat ini.
+        </p>
+      )}
+    </section>
+
+    <!-- Grid poster kategori (bawah) -->
+    <section class="max-w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-8 sm:py-10 md:py-12 border-t border-hairline">
+      <p class="font-mono text-xs text-smoke uppercase tracking-wide mb-4 sm:mb-5">
+        Kategori Lainnya
+      </p>
+      <CategoryPosterGrid posters={categoryPostersBottom} />
+    </section>
+  </main>
+
+  <Footer />
+</Layout>
+
+<script>
+  function initSort(): void {
+    const select = document.getElementById("sort-koleksi-baru") as HTMLSelectElement | null;
+    const grid = document.getElementById("product-grid");
+    if (!select || !grid) return;
+
+    select.addEventListener("change", () => {
+      const items = Array.from(grid.querySelectorAll<HTMLElement>(".grid-item"));
+      const value = select.value;
+
+      items.sort((a, b) => {
+        if (value === "harga-rendah") {
+          return Number(a.dataset.price) - Number(b.dataset.price);
+        }
+        if (value === "harga-tinggi") {
+          return Number(b.dataset.price) - Number(a.dataset.price);
+        }
+        // terbaru
+        return (
+          new Date(b.dataset.created ?? "").getTime() -
+          new Date(a.dataset.created ?? "").getTime()
+        );
+      });
+
+      items.forEach((item) => grid.appendChild(item));
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", initSort);
+  document.addEventListener("astro:page-load", initSort);
+</script>

@@ -1,0 +1,280 @@
+---
+import Icon from "./Icon.astro";
+
+export interface Props {
+  title?: string;
+}
+
+const shopLinks = [
+  { label: "Men", href: "/men" },
+  { label: "Women", href: "/women" },
+  { label: "New Arrivals", href: "/new-arrivals" },
+  { label: "Best Sellers", href: "/best-sellers" },
+  { label: "Sale", href: "/sale" },
+];
+
+const helpLinks = [
+  { label: "Track Order", href: "/track-order" },
+  { label: "Shipping & Delivery", href: "/shipping" },
+  { label: "Returns & Exchanges", href: "/returns" },
+  { label: "Size Guide", href: "/size-guide" },
+  { label: "FAQ", href: "/faq" },
+];
+
+const companyLinks = [
+  { label: "About Us", href: "/about" },
+  { label: "Sustainability", href: "/sustainability" },
+  { label: "Careers", href: "/careers" },
+  { label: "Store Locator", href: "/stores" },
+  { label: "Contact", href: "/contact" },
+];
+
+const legalLinks = [
+  { label: "Privacy Policy", href: "/privacy" },
+  { label: "Terms of Service", href: "/terms" },
+  { label: "Cookie Policy", href: "/cookies" },
+];
+
+const socialLinks = [
+  { label: "Instagram", href: "https://instagram.com", icon: "instagram" as const },
+  { label: "TikTok", href: "https://tiktok.com", icon: "tiktok" as const },
+  { label: "Twitter", href: "https://twitter.com", icon: "twitter" as const },
+];
+
+const paymentMethods = ["Visa", "Mastercard", "Amex", "PayPal", "Apple Pay", "Google Pay"];
+
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="bg-ink text-paper border-t border-ink">
+  <!-- ============================================ -->
+  <!-- Top: Brand statement + Newsletter             -->
+  <!-- ============================================ -->
+  <div class="max-w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-12 sm:py-16 md:py-20 border-b border-paper/15">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-end">
+      <div>
+        <p class="font-mono text-xs text-paper/50 uppercase tracking-wide mb-3">
+          STRIDE
+        </p>
+        <h2 class="font-display text-3xl sm:text-4xl md:text-5xl leading-[1.05] max-w-lg">
+          Built for movement. Designed to last.
+        </h2>
+      </div>
+
+      <div>
+        <p class="font-body text-sm sm:text-base text-paper/70 mb-4">
+          Subscribe for early access to drops, restocks, and exclusive offers.
+        </p>
+        <form id="newsletter-form" class="flex flex-col sm:flex-row gap-3" novalidate>
+          <label for="newsletter-email" class="sr-only">Email address</label>
+          <input
+            type="email"
+            id="newsletter-email"
+            required
+            placeholder="you@email.com"
+            class="flex-1 bg-transparent border-2 border-paper/30 focus:border-signal px-4 py-3 text-sm sm:text-base font-body text-paper placeholder:text-paper/40 focus:outline-none transition-colors"
+          />
+          <button
+            type="submit"
+            class="shrink-0 bg-signal text-paper px-6 py-3 font-body font-semibold text-sm sm:text-base hover:brightness-110 transition-all duration-200 border-2 border-signal"
+          >
+            Subscribe
+          </button>
+        </form>
+        <p id="newsletter-message" class="font-mono text-xs text-paper/50 mt-3 h-4" aria-live="polite"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- Middle: Navigation columns + Contact          -->
+  <!-- ============================================ -->
+  <div class="max-w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-10 sm:py-12 md:py-16 border-b border-paper/15">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10">
+      <!-- Shop -->
+      <nav aria-label="Shop">
+        <h3 class="font-mono text-xs uppercase tracking-wide text-paper/50 mb-4">Shop</h3>
+        <ul class="space-y-2.5 sm:space-y-3">
+          {shopLinks.map((link) => (
+            <li>
+              <a href={link.href} class="footer-link text-sm sm:text-base text-paper/85 hover:text-signal transition-colors duration-200">
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <!-- Help -->
+      <nav aria-label="Help">
+        <h3 class="font-mono text-xs uppercase tracking-wide text-paper/50 mb-4">Help</h3>
+        <ul class="space-y-2.5 sm:space-y-3">
+          {helpLinks.map((link) => (
+            <li>
+              <a href={link.href} class="footer-link text-sm sm:text-base text-paper/85 hover:text-signal transition-colors duration-200">
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <!-- Company -->
+      <nav aria-label="Company">
+        <h3 class="font-mono text-xs uppercase tracking-wide text-paper/50 mb-4">Company</h3>
+        <ul class="space-y-2.5 sm:space-y-3">
+          {companyLinks.map((link) => (
+            <li>
+              <a href={link.href} class="footer-link text-sm sm:text-base text-paper/85 hover:text-signal transition-colors duration-200">
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <!-- Contact -->
+      <div>
+        <h3 class="font-mono text-xs uppercase tracking-wide text-paper/50 mb-4">Contact</h3>
+        <ul class="space-y-2.5 sm:space-y-3 text-sm sm:text-base text-paper/85">
+          <li>
+            <a href="mailto:support@stride.com" class="footer-link hover:text-signal transition-colors duration-200">
+              support@stride.com
+            </a>
+          </li>
+          <li>
+            <a href="tel:+10000000000" class="footer-link hover:text-signal transition-colors duration-200">
+              +1 (000) 000-0000
+            </a>
+          </li>
+          <li class="text-paper/60 leading-relaxed">
+            Mon–Fri, 9am–6pm
+          </li>
+        </ul>
+
+        <!-- Social -->
+        <div class="flex items-center gap-3 mt-6">
+          {socialLinks.map((social) => (
+            <a
+              href={social.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={social.label}
+              class="w-9 h-9 flex items-center justify-center border-2 border-paper/30 text-paper/85 hover:border-signal hover:text-signal transition-colors duration-200"
+            >
+              <Icon name={social.icon} class="w-4 h-4" />
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- Trust badges: shipping / returns / payment    -->
+  <!-- ============================================ -->
+  <div class="max-w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-8 sm:py-10 border-b border-paper/15">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 mb-8">
+      <div class="flex items-start gap-3">
+        <Icon name="truck" class="w-6 h-6 text-signal shrink-0" />
+        <div>
+          <p class="font-body font-semibold text-sm sm:text-base text-paper">Free Shipping</p>
+          <p class="font-body text-xs sm:text-sm text-paper/60">On orders over $75</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-3">
+        <Icon name="refresh" class="w-6 h-6 text-signal shrink-0" />
+        <div>
+          <p class="font-body font-semibold text-sm sm:text-base text-paper">Easy Returns</p>
+          <p class="font-body text-xs sm:text-sm text-paper/60">30-day return window</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-3">
+        <Icon name="shield" class="w-6 h-6 text-signal shrink-0" />
+        <div>
+          <p class="font-body font-semibold text-sm sm:text-base text-paper">Secure Checkout</p>
+          <p class="font-body text-xs sm:text-sm text-paper/60">Encrypted payment</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment methods -->
+    <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+      {paymentMethods.map((method) => (
+        <span class="px-3 py-1.5 border border-paper/25 font-mono text-[10px] sm:text-xs text-paper/70 uppercase tracking-wide">
+          {method}
+        </span>
+      ))}
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- Bottom bar: legal + copyright                 -->
+  <!-- ============================================ -->
+  <div class="max-w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-5 sm:py-6">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-3">
+      <p class="font-mono text-[11px] sm:text-xs text-paper/50 order-2 sm:order-1">
+        © {currentYear} STRIDE. All rights reserved.
+      </p>
+      <ul class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 order-1 sm:order-2">
+        {legalLinks.map((link) => (
+          <li>
+            <a href={link.href} class="font-mono text-[11px] sm:text-xs text-paper/50 hover:text-signal transition-colors duration-200">
+              {link.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<script>
+  let footerInitialized = false;
+
+  function initFooter(): void {
+    if (footerInitialized) return;
+
+    const form = document.getElementById("newsletter-form") as HTMLFormElement | null;
+    const emailInput = document.getElementById("newsletter-email") as HTMLInputElement | null;
+    const message = document.getElementById("newsletter-message");
+
+    if (!form || !emailInput || !message) return;
+
+    footerInitialized = true;
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const email = emailInput.value.trim();
+      const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+      if (!isValid) {
+        message.textContent = "Please enter a valid email address.";
+        message.classList.add("text-signal");
+        return;
+      }
+
+      // TODO: hubungkan ke email provider (mis. Mailchimp, Klaviyo, atau endpoint sendiri)
+      message.classList.remove("text-signal");
+      message.textContent = "Thanks for subscribing!";
+      form.reset();
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", initFooter);
+  document.addEventListener("astro:page-load", () => {
+    footerInitialized = false;
+    initFooter();
+  });
+
+  if (document.readyState !== "loading") {
+    initFooter();
+  }
+</script>
+
+<style>
+  .footer-link {
+    position: relative;
+  }
+</style>

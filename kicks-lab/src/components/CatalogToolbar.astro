@@ -1,0 +1,28 @@
+---
+export interface Props {
+  count: number;
+  sortId?: string; // id elemen <select>, default "sort-select"
+}
+
+const { count, sortId = "sort-select" } = Astro.props;
+---
+
+<div class="flex items-center justify-between gap-4 flex-wrap border-y border-hairline py-4 mb-8 sm:mb-10">
+  <p class="font-mono text-xs sm:text-sm text-smoke uppercase tracking-wide">
+    {count} produk
+  </p>
+
+  <div class="flex items-center gap-2 sm:gap-3">
+    <label for={sortId} class="font-mono text-[10px] sm:text-xs text-smoke uppercase tracking-wide hidden sm:inline">
+      Urutkan
+    </label>
+    <select
+      id={sortId}
+      class="border-2 border-ink bg-paper text-ink font-body text-xs sm:text-sm px-3 py-2 sm:py-2.5 focus:outline-none focus:border-signal transition-colors cursor-pointer"
+    >
+      <option value="terbaru">Terbaru</option>
+      <option value="harga-rendah">Harga: Rendah ke Tinggi</option>
+      <option value="harga-tinggi">Harga: Tinggi ke Rendah</option>
+    </select>
+  </div>
+</div>

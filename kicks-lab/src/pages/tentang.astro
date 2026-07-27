@@ -1,0 +1,51 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Navbar from "../components/Navbar.astro";
+import Footer from "../components/Footer.astro";
+import Icon from "../components/Icon.astro";
+---
+
+<Layout
+  title="Tentang — STRIDE"
+  description="Halaman Tentang STRIDE sedang dalam pembangunan."
+>
+  <Navbar />
+
+  <main class="bg-paper min-h-screen flex items-center justify-center px-4 sm:px-6 pt-16 sm:pt-20 md:pt-24">
+    <div class="max-w-xl w-full text-center py-16 sm:py-20 md:py-24">
+      <p class="font-mono text-xs sm:text-sm text-smoke uppercase tracking-wide mb-4 sm:mb-6">
+        Beranda / Tentang
+      </p>
+
+      <h1 class="font-display text-7xl sm:text-8xl md:text-9xl text-stroke leading-none mb-4 sm:mb-6">
+        404
+      </h1>
+
+      <h2 class="font-display text-2xl sm:text-3xl md:text-4xl text-ink leading-tight mb-3 sm:mb-4">
+        Halaman ini masih dibangun
+      </h2>
+
+      <p class="font-body text-sm sm:text-base text-charcoal max-w-md mx-auto mb-8 sm:mb-10">
+        Cerita STRIDE sedang kami rapikan. Sementara itu, jelajahi koleksi sepatu terbaru kami dulu.
+      </p>
+
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+        <a
+          href="/"
+          class="w-full sm:w-auto bg-ink text-paper px-6 py-3 font-body font-semibold text-sm rounded-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 border-2 border-ink flex items-center justify-center gap-2"
+        >
+          <Icon name="arrow-up-right" class="w-4 h-4 rotate-[-90deg]" />
+          Kembali ke Beranda
+        </a>
+        <a
+          href="/koleksi-baru"
+          class="w-full sm:w-auto border-2 border-ink text-ink px-6 py-3 font-body font-semibold text-sm rounded-sm hover:bg-ink/5 transition-colors duration-200"
+        >
+          Lihat Koleksi Baru
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>

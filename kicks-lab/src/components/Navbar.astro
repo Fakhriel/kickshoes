@@ -1,0 +1,1165 @@
+---
+import Icon from "./Icon.astro";
+
+export interface Props {
+  title?: string;
+}
+
+const navLinks = [
+  { label: "Pria", href: "/pria" },
+  { label: "Wanita", href: "/wanita" },
+  { label: "Koleksi Baru", href: "/koleksi-baru" },
+  { label: "Tentang", href: "/tentang" },
+];
+
+// URL backend Express, dipakai client script di bawah untuk fetch
+// register/login. Sama seperti pola di pages/produk/[slug].astro.
+const API_URL = import.meta.env.PUBLIC_API_URL || "http://localhost:4000";
+---
+
+<header
+  id="navbar"
+  data-api-url={API_URL}
+  class="fixed top-0 left-0 right-0 z-50 border-b border-ink bg-paper/95 backdrop-blur-sm h-16 sm:h-20 md:h-24"
+>
+  <nav class="max-w-full mx-auto flex items-center justify-between h-full px-4 sm:px-6 md:px-8 lg:px-12">
+    <!-- Logo -->
+    <a
+      href="/"
+      class="flex items-center gap-2 group shrink-0"
+      aria-label="STRIDE — kembali ke beranda"
+    >
+      <img
+        src="/logo.png"
+        alt="STRIDE"
+        class="h-6 sm:h-7 md:h-8 w-auto object-contain"
+      />
+    </a>
+
+    <!-- Desktop nav (hidden on mobile & tablet) -->
+    <ul class="hidden lg:flex items-center gap-9 xl:gap-10 font-body font-medium text-sm lg:text-base">
+      {navLinks.map((link) => (
+        <li>
+          <a
+            href={link.href}
+            class="nav-link relative py-2 text-ink hover:text-signal transition-colors duration-200"
+          >
+            {link.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+
+    <!-- Right actions -->
+    <div class="flex items-center gap-1 sm:gap-2 md:gap-3 lg:gap-4">
+      <!-- Search button -->
+      <button
+        id="search-btn"
+        type="button"
+        aria-label="Cari produk"
+        class="p-2 md:p-2.5 text-ink hover:text-signal transition-colors duration-200"
+      >
+        <Icon name="search" class="w-5 h-5 md:w-6 md:h-6" />
+      </button>
+
+      <!-- User dropdown (tampil di semua ukuran layar — mobile, tablet, desktop) -->
+      <div class="block relative">
+        <button
+          id="user-btn"
+          type="button"
+          aria-label="Akun saya"
+          aria-expanded="false"
+          aria-haspopup="menu"
+          class="user-btn p-2 md:p-2.5 text-ink hover:text-signal transition-colors duration-200 rounded-full"
+        >
+          <Icon name="user" class="w-5 h-5 md:w-6 md:h-6" />
+        </button>
+
+        <!-- User dropdown menu -->
+        <div
+          id="user-dropdown"
+          role="menu"
+          class="absolute right-0 mt-2 w-56 max-w-[calc(100vw-2rem)] bg-paper border-2 border-ink rounded-sm shadow-lg translate-y-2 opacity-0 pointer-events-none transition-all duration-200"
+        >
+          <!-- Logged out state -->
+          <div id="auth-section" class="p-5 space-y-3">
+            <button
+              type="button"
+              data-open-auth="login"
+              class="w-full block text-center bg-ink text-paper px-4 py-3 font-body font-semibold text-sm rounded-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 border-2 border-ink"
+            >
+              Masuk
+            </button>
+            <button
+              type="button"
+              data-open-auth="register"
+              class="w-full block text-center border-2 border-ink text-ink px-4 py-3 font-body font-semibold text-sm rounded-sm hover:bg-ink/5 transition-colors duration-200"
+            >
+              Daftar
+            </button>
+          </div>
+
+          <!-- Logged in state (hidden by default) -->
+          <div id="user-profile" class="p-5 space-y-3 hidden">
+            <div class="pb-3 border-b border-hairline">
+              <p class="font-body text-sm text-ink font-semibold">
+                <span id="user-name">User</span>
+              </p>
+              <p class="font-mono text-xs text-smoke">
+                <span id="user-email">user@example.com</span>
+              </p>
+            </div>
+            <a
+              href="/profile"
+              class="block px-4 py-2 text-sm text-ink hover:text-signal hover:bg-ink/5 transition-colors duration-200 rounded-sm"
+            >
+              Profil Saya
+            </a>
+            <a
+              href="/profile#keranjang"
+              class="block px-4 py-2 text-sm text-ink hover:text-signal hover:bg-ink/5 transition-colors duration-200 rounded-sm"
+            >
+              Pesanan Saya
+            </a>
+            <button
+              id="logout-btn"
+              type="button"
+              class="w-full text-left px-4 py-2 text-sm text-signal hover:bg-signal/10 transition-colors duration-200 rounded-sm font-semibold"
+            >
+              Keluar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Wishlist button -->
+      <button
+        id="wishlist-btn"
+        type="button"
+        aria-label="Favorit saya"
+        class="p-2 md:p-2.5 text-ink hover:text-signal transition-colors duration-200 relative"
+        data-action="wishlist"
+      >
+        <Icon name="heart" class="w-5 h-5 md:w-6 md:h-6" />
+        <span
+          id="wishlist-count"
+          class="absolute -top-1 -right-1 w-5 h-5 md:w-6 md:h-6 bg-signal text-paper text-[8px] md:text-[9px] font-bold flex items-center justify-center rounded-full leading-none opacity-0 scale-0 transition-all duration-200"
+        >
+          0
+        </span>
+      </button>
+
+      <!-- Cart button -->
+      <button
+        id="cart-btn"
+        type="button"
+        aria-label="Keranjang belanja"
+        class="relative p-2 md:p-2.5 text-ink hover:text-signal transition-colors duration-200"
+        data-action="cart"
+      >
+        <Icon name="bag" class="w-5 h-5 md:w-6 md:h-6" />
+        <span
+          id="cart-count"
+          class="absolute -top-1 -right-1 w-5 h-5 md:w-6 md:h-6 bg-signal text-paper text-[8px] md:text-[9px] font-bold flex items-center justify-center rounded-full leading-none opacity-0 scale-0 transition-all duration-200"
+        >
+          0
+        </span>
+      </button>
+
+      <!-- Mobile menu toggle (hamburger) -->
+      <button
+        id="menu-toggle"
+        type="button"
+        aria-label="Buka menu navigasi"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+        class="lg:hidden p-2 md:p-2.5 text-ink hover:text-signal transition-colors duration-200 relative z-[60]"
+      >
+        <Icon name="menu" class="w-6 h-6 md:w-7 md:h-7" />
+      </button>
+    </div>
+  </nav>
+</header>
+
+<!-- ============================================================ -->
+<!-- Everything below is OUTSIDE <header> on purpose.               -->
+<!-- <header> has backdrop-blur, which creates a new stacking/      -->
+<!-- containing-block context in most browsers. Any `fixed` child   -->
+<!-- of a blurred/filtered ancestor gets positioned relative to     -->
+<!-- THAT ancestor instead of the viewport — which is why the menu  -->
+<!-- and modals were stuck near the top instead of covering the     -->
+<!-- screen / centering. Moving them to the document root fixes it. -->
+<!-- ============================================================ -->
+
+<!-- Mobile menu panel -->
+<div
+  id="mobile-menu"
+  class="lg:hidden fixed inset-0 top-16 sm:top-20 md:top-24 bg-paper border-t border-ink translate-x-full transition-transform duration-300 ease-out overflow-y-auto z-50"
+>
+  <!-- Nav links -->
+  <ul class="flex flex-col font-display text-3xl sm:text-4xl pt-6 sm:pt-8 px-4 sm:px-6 gap-4 sm:gap-6 border-b border-hairline pb-6 sm:pb-8">
+    {navLinks.map((link) => (
+      <li>
+        <a
+          href={link.href}
+          class="nav-mobile-link flex items-center justify-between py-2 text-ink hover:text-signal transition-colors duration-200"
+        >
+          {link.label}
+          <Icon name="arrow-up-right" class="w-6 h-6 sm:w-7 sm:h-7" />
+        </a>
+      </li>
+    ))}
+  </ul>
+
+  <!-- User section (mobile) - Auth buttons -->
+  <div id="mobile-auth-section" class="p-4 sm:p-6 space-y-3 border-b border-hairline">
+    <button
+      type="button"
+      data-open-auth="login"
+      class="w-full block text-center bg-ink text-paper px-4 py-2.5 sm:py-3 font-body font-semibold text-sm sm:text-base rounded-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 border-2 border-ink"
+    >
+      Masuk
+    </button>
+    <button
+      type="button"
+      data-open-auth="register"
+      class="w-full block text-center border-2 border-ink text-ink px-4 py-2.5 sm:py-3 font-body font-semibold text-sm sm:text-base rounded-sm hover:bg-ink/5 transition-colors duration-200"
+    >
+      Daftar
+    </button>
+  </div>
+
+  <!-- User profile section (mobile) -->
+  <div id="mobile-user-profile" class="p-4 sm:p-6 space-y-3 hidden border-b border-hairline">
+    <div class="pb-3 border-b border-hairline">
+      <p class="font-body text-sm sm:text-base text-ink font-semibold">
+        <span id="mobile-user-name">User</span>
+      </p>
+      <p class="font-mono text-xs sm:text-sm text-smoke">
+        <span id="mobile-user-email">user@example.com</span>
+      </p>
+    </div>
+    <a
+      href="/profile"
+      class="block px-4 py-2 text-sm sm:text-base text-ink hover:text-signal hover:bg-ink/5 transition-colors duration-200 rounded-sm"
+    >
+      Profil Saya
+    </a>
+    <a
+      href="/profile#keranjang"
+      class="block px-4 py-2 text-sm sm:text-base text-ink hover:text-signal hover:bg-ink/5 transition-colors duration-200 rounded-sm"
+    >
+      Pesanan Saya
+    </a>
+    <button
+      id="mobile-logout-btn"
+      type="button"
+      class="w-full text-left px-4 py-2 text-sm sm:text-base text-signal hover:bg-signal/10 transition-colors duration-200 rounded-sm font-semibold"
+    >
+      Keluar
+    </button>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- Auth Modal (Login / Register, tengah layar)  -->
+<!-- ============================================ -->
+<div
+  id="auth-form-modal"
+  class="fixed inset-0 bg-black/40 opacity-0 pointer-events-none transition-opacity duration-300 z-[100] flex items-center justify-center p-4"
+>
+  <div
+    id="auth-form-panel"
+    class="relative bg-paper border-2 border-ink p-6 sm:p-8 max-w-sm w-full rounded-sm scale-95 opacity-0 transition-all duration-300 max-h-[90vh] overflow-y-auto"
+  >
+    <button
+      type="button"
+      id="auth-form-close-btn"
+      aria-label="Tutup"
+      class="absolute top-4 right-4 text-ink hover:text-signal transition-colors duration-200"
+    >
+      <Icon name="close" class="w-5 h-5" />
+    </button>
+
+    <!-- Tabs -->
+    <div class="flex border-b-2 border-ink mb-6">
+      <button
+        type="button"
+        id="tab-login"
+        data-tab="login"
+        class="auth-tab flex-1 pb-3 font-display text-xl sm:text-2xl text-ink border-b-2 border-ink -mb-0.5"
+      >
+        Masuk
+      </button>
+      <button
+        type="button"
+        id="tab-register"
+        data-tab="register"
+        class="auth-tab flex-1 pb-3 font-display text-xl sm:text-2xl text-smoke border-b-2 border-transparent -mb-0.5"
+      >
+        Daftar
+      </button>
+    </div>
+
+    <!-- Login form -->
+    <form id="login-form" class="space-y-4">
+      <div>
+        <label for="login-email" class="block text-xs font-mono text-smoke mb-1">EMAIL</label>
+        <input
+          type="email"
+          id="login-email"
+          required
+          class="w-full border-2 border-ink bg-paper px-3 py-2.5 text-sm font-body focus:outline-none focus:border-signal transition-colors"
+          placeholder="kamu@email.com"
+        />
+      </div>
+      <div>
+        <label for="login-password" class="block text-xs font-mono text-smoke mb-1">PASSWORD</label>
+        <input
+          type="password"
+          id="login-password"
+          required
+          class="w-full border-2 border-ink bg-paper px-3 py-2.5 text-sm font-body focus:outline-none focus:border-signal transition-colors"
+          placeholder="••••••••"
+        />
+      </div>
+      <button
+        type="submit"
+        class="w-full bg-ink text-paper px-4 py-3 font-body font-semibold text-sm rounded-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 border-2 border-ink"
+      >
+        Masuk
+      </button>
+      <p class="text-center text-xs sm:text-sm text-charcoal">
+        Belum punya akun?
+        <button type="button" data-switch-tab="register" class="font-semibold text-signal hover:underline">
+          Daftar
+        </button>
+      </p>
+    </form>
+
+    <!-- Register form (hidden by default) -->
+    <form id="register-form" class="space-y-4 hidden">
+      <div>
+        <label for="register-name" class="block text-xs font-mono text-smoke mb-1">NAMA LENGKAP</label>
+        <input
+          type="text"
+          id="register-name"
+          required
+          class="w-full border-2 border-ink bg-paper px-3 py-2.5 text-sm font-body focus:outline-none focus:border-signal transition-colors"
+          placeholder="Nama kamu"
+        />
+      </div>
+      <div>
+        <label for="register-email" class="block text-xs font-mono text-smoke mb-1">EMAIL</label>
+        <input
+          type="email"
+          id="register-email"
+          required
+          class="w-full border-2 border-ink bg-paper px-3 py-2.5 text-sm font-body focus:outline-none focus:border-signal transition-colors"
+          placeholder="kamu@email.com"
+        />
+      </div>
+      <div>
+        <label for="register-password" class="block text-xs font-mono text-smoke mb-1">PASSWORD</label>
+        <input
+          type="password"
+          id="register-password"
+          required
+          class="w-full border-2 border-ink bg-paper px-3 py-2.5 text-sm font-body focus:outline-none focus:border-signal transition-colors"
+          placeholder="Minimal 8 karakter"
+        />
+      </div>
+      <button
+        type="submit"
+        class="w-full bg-ink text-paper px-4 py-3 font-body font-semibold text-sm rounded-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 border-2 border-ink"
+      >
+        Daftar
+      </button>
+      <p class="text-center text-xs sm:text-sm text-charcoal">
+        Sudah punya akun?
+        <button type="button" data-switch-tab="login" class="font-semibold text-signal hover:underline">
+          Masuk
+        </button>
+      </p>
+    </form>
+
+    <!-- Divider -->
+    <div class="flex items-center gap-3 my-6">
+      <div class="flex-1 h-px bg-hairline"></div>
+      <span class="text-xs font-mono text-smoke">ATAU</span>
+      <div class="flex-1 h-px bg-hairline"></div>
+    </div>
+
+    <!-- Social login (UI only — belum terhubung ke provider) -->
+    <div class="space-y-3">
+      <button
+        type="button"
+        data-provider="google"
+        class="social-auth-btn w-full flex items-center justify-center gap-3 border-2 border-ink px-4 py-2.5 sm:py-3 font-body font-semibold text-sm rounded-sm hover:bg-ink/5 transition-colors duration-200"
+      >
+        <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.25 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A10.99 10.99 0 0 0 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.1A6.6 6.6 0 0 1 5.49 12c0-.73.13-1.43.35-2.1V7.06H2.18A10.99 10.99 0 0 0 1 12c0 1.77.43 3.45 1.18 4.94l3.66-2.84z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+        </svg>
+        Lanjutkan dengan Google
+      </button>
+      <button
+        type="button"
+        data-provider="facebook"
+        class="social-auth-btn w-full flex items-center justify-center gap-3 bg-[#1877F2] text-paper px-4 py-2.5 sm:py-3 font-body font-semibold text-sm rounded-sm hover:brightness-110 transition-all duration-200 border-2 border-[#1877F2]"
+      >
+        <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.7 4.53-4.7 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.95.93-1.95 1.89v2.26h3.32l-.53 3.49h-2.79V24C19.61 23.1 24 18.1 24 12.07z"/>
+        </svg>
+        Lanjutkan dengan Facebook
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- Auth Required Modal (cart & wishlist gating)  -->
+<!-- ============================================ -->
+<div
+  id="auth-modal"
+  class="fixed inset-0 bg-black/40 opacity-0 pointer-events-none transition-opacity duration-300 z-[100] flex items-center justify-center p-4"
+>
+  <div
+    id="auth-modal-panel"
+    class="bg-paper border-2 border-ink p-6 sm:p-8 max-w-sm w-full rounded-sm scale-95 opacity-0 transition-all duration-300"
+  >
+    <h2 class="font-display text-2xl sm:text-3xl text-ink mb-2 sm:mb-3">
+      Perlu Login
+    </h2>
+    <p id="modal-message" class="text-sm sm:text-base text-charcoal mb-6 sm:mb-8">
+      Silakan login untuk mengakses fitur ini.
+    </p>
+    <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+      <button
+        type="button"
+        id="modal-login-btn"
+        class="flex-1 text-center bg-ink text-paper px-4 py-2.5 sm:py-3 font-body font-semibold text-sm sm:text-base rounded-sm hover:shadow-lg transition-all duration-200"
+      >
+        Masuk
+      </button>
+      <button
+        type="button"
+        id="modal-close-btn"
+        class="flex-1 border-2 border-ink text-ink px-4 py-2.5 sm:py-3 font-body font-semibold text-sm sm:text-base rounded-sm hover:bg-ink/5 transition-colors duration-200"
+      >
+        Tutup
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- Search Modal                                  -->
+<!-- ============================================ -->
+<div
+  id="search-modal"
+  class="fixed inset-0 bg-black/40 opacity-0 pointer-events-none transition-opacity duration-300 z-[100] flex items-start justify-center p-4 pt-20 sm:pt-28"
+>
+  <div
+    id="search-modal-panel"
+    class="bg-paper border-2 border-ink p-5 sm:p-6 max-w-lg w-full rounded-sm scale-95 opacity-0 transition-all duration-300"
+  >
+    <div class="flex items-center gap-3 border-b-2 border-ink pb-3 mb-4">
+      <Icon name="search" class="w-5 h-5 text-smoke shrink-0" />
+      <input
+        id="search-input"
+        type="text"
+        placeholder="Cari produk, mis. 'Vantage Runner'..."
+        autocomplete="off"
+        class="flex-1 bg-transparent font-body text-sm sm:text-base text-ink placeholder:text-smoke outline-none"
+      />
+      <button
+        type="button"
+        id="search-modal-close-btn"
+        aria-label="Tutup pencarian"
+        class="text-smoke hover:text-ink transition-colors duration-200 shrink-0"
+      >
+        <Icon name="close" class="w-5 h-5" />
+      </button>
+    </div>
+
+    <div id="search-status" class="font-mono text-xs text-smoke py-6 text-center">
+      Mulai mengetik untuk mencari produk.
+    </div>
+
+    <div id="search-results" class="hidden flex flex-col gap-1 max-h-[60vh] overflow-y-auto"></div>
+  </div>
+</div>
+
+<!-- Toast notification (pojok bawah — by design) -->
+<div
+  id="toast"
+  class="fixed bottom-6 sm:bottom-8 left-4 sm:left-6 max-w-xs bg-ink text-paper px-4 sm:px-6 py-3 sm:py-4 rounded-sm shadow-lg translate-y-24 opacity-0 transition-all duration-300 z-[110] flex items-center gap-3"
+>
+  <span id="toast-message" class="text-sm sm:text-base font-body"></span>
+</div>
+
+<script>
+  import { gsap } from "gsap";
+  import { getAuthState, setAuthenticated, clearAuthenticated } from "../lib/AuthState";
+  import { getCart, getWishlist } from "../lib/CartWishlist";
+
+  // ============================================
+  // State
+  // ============================================
+  // isAuthenticated dibaca dari sessionStorage (lewat authState.ts) supaya
+  // status login tetap konsisten saat pindah halaman (full page navigation).
+  // Variabel lokal ini hanya cache di memori untuk halaman saat ini.
+  let isAuthenticated = false;
+  let cartCount = 0;
+  let wishlistCount = 0;
+  let navbarInitialized = false;
+
+  // Dibaca dari data-api-url di <header> (lihat frontmatter), bukan
+  // define:vars — define:vars tidak kompatibel dengan "import" statement
+  // di script ini (lihat gsap/AuthState di atas).
+  const apiUrl =
+    document.getElementById("navbar")?.dataset.apiUrl || "http://localhost:4000";
+
+  function initNavbar(): void {
+    // Hindari double-binding kalau script ini sempat jalan dua kali
+    if (navbarInitialized) return;
+
+    // Sinkronkan dengan status login tersimpan setiap kali Navbar di-init
+    // (termasuk saat pindah halaman lewat astro:page-load).
+    isAuthenticated = getAuthState().isAuthenticated;
+
+    // ============================================
+    // DOM Elements
+    // ============================================
+    const menuToggle = document.getElementById("menu-toggle");
+    const mobileMenu = document.getElementById("mobile-menu");
+    const userBtn = document.getElementById("user-btn") as HTMLButtonElement | null;
+    const userDropdown = document.getElementById("user-dropdown");
+
+    const authModal = document.getElementById("auth-modal");
+    const authModalPanel = document.getElementById("auth-modal-panel");
+    const modalCloseBtn = document.getElementById("modal-close-btn");
+    const modalLoginBtn = document.getElementById("modal-login-btn");
+    const modalMessage = document.getElementById("modal-message");
+
+    const authFormModal = document.getElementById("auth-form-modal");
+    const authFormPanel = document.getElementById("auth-form-panel");
+    const authFormCloseBtn = document.getElementById("auth-form-close-btn");
+    const tabLogin = document.getElementById("tab-login");
+    const tabRegister = document.getElementById("tab-register");
+    const loginForm = document.getElementById("login-form") as HTMLFormElement | null;
+    const registerForm = document.getElementById("register-form") as HTMLFormElement | null;
+
+    const searchBtn = document.getElementById("search-btn");
+    const searchModal = document.getElementById("search-modal");
+    const searchModalPanel = document.getElementById("search-modal-panel");
+    const searchModalCloseBtn = document.getElementById("search-modal-close-btn");
+    const searchInput = document.getElementById("search-input") as HTMLInputElement | null;
+    const searchStatus = document.getElementById("search-status");
+    const searchResults = document.getElementById("search-results");
+
+    const toast = document.getElementById("toast");
+    const toastMessage = document.getElementById("toast-message");
+
+    const cartBtn = document.getElementById("cart-btn");
+    const wishlistBtn = document.getElementById("wishlist-btn");
+    const cartCountEl = document.getElementById("cart-count");
+    const wishlistCountEl = document.getElementById("wishlist-count");
+
+    const authSection = document.getElementById("auth-section");
+    const userProfile = document.getElementById("user-profile");
+    const mobileAuthSection = document.getElementById("mobile-auth-section");
+    const mobileUserProfile = document.getElementById("mobile-user-profile");
+    const logoutBtn = document.getElementById("logout-btn");
+    const mobileLogoutBtn = document.getElementById("mobile-logout-btn");
+
+    // Kalau elemen inti gak ada, jangan lanjut.
+    if (!menuToggle || !mobileMenu) return;
+
+    navbarInitialized = true;
+
+    // ============================================
+    // Utility: Modal & Toast
+    // ============================================
+    function showToast(message: string): void {
+      if (!toast || !toastMessage) return;
+
+      toastMessage.textContent = message;
+      gsap.to(toast, { translateY: 0, opacity: 1, duration: 0.3, ease: "back.out(1.7)" });
+
+      setTimeout(() => {
+        gsap.to(toast, { translateY: 96, opacity: 0, duration: 0.3, ease: "power2.in" });
+      }, 2500);
+    }
+
+    function updateCountBadge(element: HTMLElement | null, count: number): void {
+      if (!element) return;
+
+      if (count > 0) {
+        element.textContent = count > 99 ? "99+" : String(count);
+        gsap.to(element, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.7)" });
+      } else {
+        gsap.to(element, { opacity: 0, scale: 0, duration: 0.2 });
+      }
+    }
+
+    // Ambil jumlah item cart & wishlist yang sebenarnya dari backend.
+    // Dipanggil saat navbar pertama kali dimuat (kalau sudah login) dan
+    // setiap kali ada perubahan (stride:cart-changed / stride:wishlist-changed)
+    // supaya badge selalu mencerminkan data asli, bukan hitungan manual.
+    async function refreshCounts(): Promise<void> {
+      if (!isAuthenticated) return;
+
+      try {
+        const items = await getCart(apiUrl);
+        cartCount = items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+        updateCountBadge(cartCountEl, cartCount);
+      } catch (err) {
+        console.error("[navbar] gagal ambil jumlah keranjang:", err);
+      }
+
+      try {
+        const items = await getWishlist(apiUrl);
+        wishlistCount = items.length;
+        updateCountBadge(wishlistCountEl, wishlistCount);
+      } catch (err) {
+        console.error("[navbar] gagal ambil jumlah wishlist:", err);
+      }
+    }
+
+    // Saat login: tombol user dapat background solid (status aktif),
+    // ikon jadi terang. Saat logout: balik ke style default outline.
+    function updateUserButtonState(): void {
+      if (!userBtn) return;
+      userBtn.classList.toggle("user-btn--active", isAuthenticated);
+    }
+
+    function updateAuthUI(): void {
+      authSection?.classList.toggle("hidden", isAuthenticated);
+      userProfile?.classList.toggle("hidden", !isAuthenticated);
+      mobileAuthSection?.classList.toggle("hidden", isAuthenticated);
+      mobileUserProfile?.classList.toggle("hidden", !isAuthenticated);
+      updateUserButtonState();
+
+      if (isAuthenticated) {
+        const { user } = getAuthState();
+        const nameEl = document.getElementById("user-name");
+        const emailEl = document.getElementById("user-email");
+        const mobileNameEl = document.getElementById("mobile-user-name");
+        const mobileEmailEl = document.getElementById("mobile-user-email");
+
+        if (nameEl) nameEl.textContent = user?.name ?? "User";
+        if (emailEl) emailEl.textContent = user?.email ?? "user@example.com";
+        if (mobileNameEl) mobileNameEl.textContent = user?.name ?? "User";
+        if (mobileEmailEl) mobileEmailEl.textContent = user?.email ?? "user@example.com";
+      }
+    }
+
+    function closeMobileMenu(): void {
+      menuToggle?.setAttribute("aria-expanded", "false");
+      mobileMenu?.classList.add("translate-x-full");
+      document.body.style.overflow = "";
+    }
+
+    function openMobileMenu(): void {
+      menuToggle?.setAttribute("aria-expanded", "true");
+      mobileMenu?.classList.remove("translate-x-full");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeUserDropdown(): void {
+      userBtn?.setAttribute("aria-expanded", "false");
+      if (userDropdown) {
+        gsap.to(userDropdown, { opacity: 0, pointerEvents: "none", translateY: 8, duration: 0.15 });
+      }
+    }
+
+    // Generic open/close untuk modal center-screen (auth-required, auth-form, search)
+    function openCenterModal(modal: HTMLElement | null, panel: HTMLElement | null): void {
+      if (!modal || !panel) return;
+      modal.classList.remove("opacity-0", "pointer-events-none");
+      gsap.fromTo(panel, { scale: 0.95, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.2 });
+      closeUserDropdown();
+      closeMobileMenu();
+    }
+
+    function closeCenterModal(modal: HTMLElement | null, panel: HTMLElement | null): void {
+      if (!modal || !panel) return;
+      gsap.to(panel, {
+        scale: 0.95,
+        opacity: 0,
+        duration: 0.15,
+        onComplete: () => {
+          modal.classList.add("opacity-0", "pointer-events-none");
+        },
+      });
+    }
+
+    function showAuthModal(action: "cart" | "wishlist"): void {
+      if (!modalMessage) return;
+      const messages: Record<string, string> = {
+        cart: "Silakan login untuk menambahkan produk ke keranjang",
+        wishlist: "Silakan login untuk menambahkan ke favorit",
+      };
+      modalMessage.textContent = messages[action] ?? "Silakan login terlebih dahulu";
+      openCenterModal(authModal, authModalPanel);
+    }
+
+    function switchAuthTab(tab: "login" | "register"): void {
+      if (!tabLogin || !tabRegister || !loginForm || !registerForm) return;
+
+      const activeClasses = ["text-ink", "border-ink"];
+      const inactiveClasses = ["text-smoke", "border-transparent"];
+
+      if (tab === "login") {
+        tabLogin.classList.add(...activeClasses);
+        tabLogin.classList.remove(...inactiveClasses);
+        tabRegister.classList.add(...inactiveClasses);
+        tabRegister.classList.remove(...activeClasses);
+        loginForm.classList.remove("hidden");
+        registerForm.classList.add("hidden");
+      } else {
+        tabRegister.classList.add(...activeClasses);
+        tabRegister.classList.remove(...inactiveClasses);
+        tabLogin.classList.add(...inactiveClasses);
+        tabLogin.classList.remove(...activeClasses);
+        registerForm.classList.remove("hidden");
+        loginForm.classList.add("hidden");
+      }
+    }
+
+    function openAuthFormModal(tab: "login" | "register"): void {
+      switchAuthTab(tab);
+      openCenterModal(authFormModal, authFormPanel);
+    }
+
+    // ============================================
+    // Event: Mobile menu toggle (hamburger)
+    // ============================================
+    menuToggle.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const isOpen = menuToggle.getAttribute("aria-expanded") === "true";
+      if (isOpen) {
+        closeMobileMenu();
+      } else {
+        openMobileMenu();
+      }
+    });
+
+    mobileMenu.querySelectorAll(".nav-mobile-link").forEach((link) => {
+      link.addEventListener("click", closeMobileMenu);
+    });
+
+    // ============================================
+    // Event: Desktop user dropdown
+    // ============================================
+    userBtn?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (!userDropdown) return;
+      const isOpen = userBtn.getAttribute("aria-expanded") === "true";
+      const newState = !isOpen;
+
+      userBtn.setAttribute("aria-expanded", String(newState));
+
+      if (newState) {
+        gsap.to(userDropdown, { opacity: 1, pointerEvents: "auto", translateY: 0, duration: 0.2, ease: "power2.out" });
+      } else {
+        closeUserDropdown();
+      }
+    });
+
+    document.addEventListener("click", (e) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (!target.closest("#user-btn") && !target.closest("#user-dropdown")) {
+        closeUserDropdown();
+      }
+    });
+
+    // ============================================
+    // Event: Cart & Wishlist
+    // ============================================
+    cartBtn?.addEventListener("click", () => {
+      if (!isAuthenticated) {
+        showAuthModal("cart");
+      } else {
+        // Icon di navbar cuma shortcut ke halaman keranjang,
+        // bukan tombol "tambah item" — itu tugasnya ProductCard.
+        window.location.href = "/profile#keranjang";
+      }
+    });
+
+    wishlistBtn?.addEventListener("click", () => {
+      if (!isAuthenticated) {
+        showAuthModal("wishlist");
+      } else {
+        // Sama seperti cart — ini shortcut ke halaman wishlist,
+        // bukan tombol "tambah favorit".
+        window.location.href = "/profile#wishlist";
+      }
+    });
+
+    // ============================================
+    // Event: Search
+    // ============================================
+    let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
+    let searchRequestId = 0;
+
+    function openSearchModal(): void {
+      openCenterModal(searchModal, searchModalPanel);
+      setTimeout(() => searchInput?.focus(), 50);
+    }
+
+    function closeSearchModal(): void {
+      closeCenterModal(searchModal, searchModalPanel);
+    }
+
+    function renderSearchResults(
+      products: Array<{ slug: string; name: string; category: string; price: number; image: string | null }>
+    ): void {
+      if (!searchResults || !searchStatus) return;
+
+      if (products.length === 0) {
+        searchResults.classList.add("hidden");
+        searchResults.innerHTML = "";
+        searchStatus.textContent = "Tidak ada produk yang cocok.";
+        searchStatus.classList.remove("hidden");
+        return;
+      }
+
+      searchStatus.classList.add("hidden");
+      searchResults.classList.remove("hidden");
+
+      const formatPrice = (value: number) =>
+        new Intl.NumberFormat("id-ID", {
+          style: "currency",
+          currency: "IDR",
+          minimumFractionDigits: 0,
+        }).format(value);
+
+      searchResults.innerHTML = products
+        .map(
+          (p) => `
+          <a href="/produk/${p.slug}" class="search-result-link flex items-center gap-3 p-2.5 sm:p-3 hover:bg-ink/5 rounded-sm transition-colors duration-150">
+            <div class="w-12 h-12 sm:w-14 sm:h-14 shrink-0 bg-hairline/40 border border-ink overflow-hidden">
+              ${p.image ? `<img src="${p.image}" alt="${p.name}" class="w-full h-full object-cover" />` : ""}
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="font-body text-sm sm:text-base text-ink font-semibold truncate">${p.name}</p>
+              <p class="font-mono text-[10px] sm:text-xs text-smoke uppercase tracking-wide">${p.category}</p>
+            </div>
+            <span class="font-body text-sm text-ink font-semibold shrink-0">${formatPrice(p.price)}</span>
+          </a>
+        `
+        )
+        .join("");
+    }
+
+    async function runSearch(keyword: string): Promise<void> {
+      if (!searchStatus || !searchResults) return;
+
+      const trimmed = keyword.trim();
+      if (!trimmed) {
+        searchResults.classList.add("hidden");
+        searchResults.innerHTML = "";
+        searchStatus.textContent = "Mulai mengetik untuk mencari produk.";
+        searchStatus.classList.remove("hidden");
+        return;
+      }
+
+      searchStatus.textContent = "Mencari...";
+      searchStatus.classList.remove("hidden");
+      searchResults.classList.add("hidden");
+
+      const thisRequestId = ++searchRequestId;
+
+      try {
+        const res = await fetch(`${apiUrl}/api/products?q=${encodeURIComponent(trimmed)}&limit=8`);
+        const json = await res.json();
+
+        // Abaikan hasil kalau sudah ada pencarian lebih baru yang menyusul
+        // (user terus mengetik) — mencegah hasil lama "menimpa" hasil baru.
+        if (thisRequestId !== searchRequestId) return;
+
+        if (!res.ok) {
+          searchStatus.textContent = "Gagal memuat hasil pencarian.";
+          return;
+        }
+
+        renderSearchResults(json.data ?? []);
+      } catch (err) {
+        if (thisRequestId !== searchRequestId) return;
+        console.error("[navbar] gagal fetch search:", err);
+        searchStatus.textContent = "Tidak bisa terhubung ke server.";
+      }
+    }
+
+    searchBtn?.addEventListener("click", openSearchModal);
+    searchModalCloseBtn?.addEventListener("click", closeSearchModal);
+    searchModal?.addEventListener("click", (e) => {
+      if (e.target === searchModal) closeSearchModal();
+    });
+
+    searchInput?.addEventListener("input", () => {
+      clearTimeout(searchDebounceTimer);
+      const value = searchInput.value;
+      searchDebounceTimer = setTimeout(() => runSearch(value), 300);
+    });
+
+    searchResults?.addEventListener("click", (e) => {
+      if ((e.target as HTMLElement | null)?.closest(".search-result-link")) {
+        closeSearchModal();
+      }
+    });
+
+    // ============================================
+    // Event: Logout
+    // ============================================
+    [logoutBtn, mobileLogoutBtn].forEach((btn) => {
+      btn?.addEventListener("click", () => {
+        isAuthenticated = false;
+        clearAuthenticated();
+        cartCount = 0;
+        wishlistCount = 0;
+        updateCountBadge(cartCountEl, 0);
+        updateCountBadge(wishlistCountEl, 0);
+        updateAuthUI();
+        showToast("Berhasil keluar");
+        closeUserDropdown();
+        closeMobileMenu();
+      });
+    });
+
+    // ============================================
+    // Event: Auth-required modal (cart/wishlist gate)
+    // ============================================
+    modalCloseBtn?.addEventListener("click", () => closeCenterModal(authModal, authModalPanel));
+    modalLoginBtn?.addEventListener("click", () => {
+      closeCenterModal(authModal, authModalPanel);
+      openAuthFormModal("login");
+    });
+    authModal?.addEventListener("click", (e) => {
+      if (e.target === authModal) closeCenterModal(authModal, authModalPanel);
+    });
+
+    // ============================================
+    // Event: Auth form modal (login/register popup)
+    // ============================================
+    document.querySelectorAll<HTMLElement>("[data-open-auth]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tab = btn.dataset.openAuth === "register" ? "register" : "login";
+        openAuthFormModal(tab);
+      });
+    });
+
+    // Link "Belum punya akun? Daftar" / "Sudah punya akun? Masuk" di dalam form
+    document.querySelectorAll<HTMLElement>("[data-switch-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tab = btn.dataset.switchTab === "register" ? "register" : "login";
+        switchAuthTab(tab);
+      });
+    });
+
+    tabLogin?.addEventListener("click", () => switchAuthTab("login"));
+    tabRegister?.addEventListener("click", () => switchAuthTab("register"));
+
+    authFormCloseBtn?.addEventListener("click", () => closeCenterModal(authFormModal, authFormPanel));
+    authFormModal?.addEventListener("click", (e) => {
+      if (e.target === authFormModal) closeCenterModal(authFormModal, authFormPanel);
+    });
+
+    // Form submit — UI only, belum terhubung backend.
+    // Form submit — terhubung ke backend asli (kicks-api /api/auth).
+    // Token JWT yang dikembalikan backend disimpan lewat AuthState.ts
+    // (localStorage) supaya status login konsisten saat pindah halaman.
+    loginForm?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const email = (document.getElementById("login-email") as HTMLInputElement | null)?.value ?? "";
+      const password = (document.getElementById("login-password") as HTMLInputElement | null)?.value ?? "";
+      const submitBtn = loginForm.querySelector<HTMLButtonElement>("button[type='submit']");
+      const originalLabel = submitBtn?.textContent ?? "";
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Memproses...";
+      }
+
+      try {
+        const res = await fetch(`${apiUrl}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        const json = await res.json();
+
+        if (!res.ok) {
+          showToast(json.error || "Gagal masuk. Periksa kembali email & password.");
+          return;
+        }
+
+        isAuthenticated = true;
+        setAuthenticated(json.data.token, json.data.user);
+        updateAuthUI();
+        refreshCounts();
+        showToast("Login berhasil");
+        closeCenterModal(authFormModal, authFormPanel);
+        loginForm.reset();
+      } catch (err) {
+        console.error("[login] gagal fetch backend:", err);
+        showToast("Tidak bisa terhubung ke server. Coba lagi.");
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalLabel;
+        }
+      }
+    });
+
+    registerForm?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const name = (document.getElementById("register-name") as HTMLInputElement | null)?.value ?? "";
+      const email = (document.getElementById("register-email") as HTMLInputElement | null)?.value ?? "";
+      const password = (document.getElementById("register-password") as HTMLInputElement | null)?.value ?? "";
+      const submitBtn = registerForm.querySelector<HTMLButtonElement>("button[type='submit']");
+      const originalLabel = submitBtn?.textContent ?? "";
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Memproses...";
+      }
+
+      try {
+        const res = await fetch(`${apiUrl}/api/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password }),
+        });
+        const json = await res.json();
+
+        if (!res.ok) {
+          showToast(json.error || "Gagal membuat akun. Coba lagi.");
+          return;
+        }
+
+        isAuthenticated = true;
+        setAuthenticated(json.data.token, json.data.user);
+        updateAuthUI();
+        showToast("Akun berhasil dibuat");
+        closeCenterModal(authFormModal, authFormPanel);
+        registerForm.reset();
+      } catch (err) {
+        console.error("[register] gagal fetch backend:", err);
+        showToast("Tidak bisa terhubung ke server. Coba lagi.");
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalLabel;
+        }
+      }
+    });
+
+    // Social login buttons — TODO: belum terhubung provider sungguhan
+    // (Google/Facebook OAuth). Kolom google_id & facebook_id sudah
+    // disiapkan di tabel users untuk diisi begitu fitur ini dikerjakan.
+    // Untuk saat ini tombol dinonaktifkan agar tidak memberi status
+    // login palsu yang token-nya tidak benar-benar valid di backend.
+    document.querySelectorAll<HTMLElement>(".social-auth-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const provider = btn.dataset.provider ?? "provider";
+        showToast(`Masuk dengan ${provider === "google" ? "Google" : "Facebook"} belum tersedia`);
+      });
+    });
+
+    // Escape key menutup semua modal center-screen
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      closeCenterModal(authModal, authModalPanel);
+      closeCenterModal(authFormModal, authFormPanel);
+      closeCenterModal(searchModal, searchModalPanel);
+    });
+
+    // ============================================
+    // Event: Sinyal dari komponen lain (ProductGrid, halaman detail produk)
+    // ============================================
+    // Tombol cart/wishlist di kartu produk & halaman detail mengirim event
+    // ini ketika user belum login, supaya modal "Perlu Login" yang sama
+    // (sudah ada di Navbar ini) bisa dipakai ulang tanpa duplikasi modal.
+    window.addEventListener("stride:auth-required", (e) => {
+      const action = (e as CustomEvent<{ action: "cart" | "wishlist" }>).detail?.action ?? "cart";
+      showAuthModal(action);
+    });
+
+    // Dikirim setelah berhasil menambah/menghapus item cart atau wishlist
+    // dari halaman manapun — Navbar menyegarkan badge count-nya dari API.
+    window.addEventListener("stride:cart-changed", refreshCounts);
+    window.addEventListener("stride:wishlist-changed", refreshCounts);
+
+    // ============================================
+    // Init
+    // ============================================
+    updateAuthUI();
+    refreshCounts();
+  }
+
+  document.addEventListener("DOMContentLoaded", initNavbar);
+  document.addEventListener("astro:page-load", () => {
+    navbarInitialized = false;
+    initNavbar();
+  });
+
+  if (document.readyState !== "loading") {
+    initNavbar();
+  }
+</script>
+
+<style>
+  .nav-link::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--color-signal);
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .nav-link:hover::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+
+  .auth-tab {
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+
+ 
+  .user-btn {
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  .user-btn--active {
+    background-color: var(--color-ink);
+    color: var(--color-paper);
+  }
+
+  .user-btn--active:hover {
+    background-color: var(--color-charcoal);
+    color: var(--color-paper);
+  }
+
+  /* Navbar height management */
+  @media (min-width: 1024px) {
+    #navbar {
+      height: 6rem;
+    }
+  }
+</style>

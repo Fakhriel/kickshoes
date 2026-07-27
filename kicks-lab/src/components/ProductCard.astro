@@ -1,0 +1,154 @@
+---
+import Icon from "./Icon.astro";
+
+export interface Props {
+  id: string;
+  slug: string;
+  name: string;
+  category: string;
+  price: number;
+  image: string;
+  imageAlt?: string;
+  badge?: "Baru" | "Diskon" | "Terlaris" | null;
+  originalPrice?: number | null;
+  firstAvailableSize?: string | null;
+}
+
+const {
+  id,
+  slug,
+  name,
+  category,
+  price,
+  image,
+  imageAlt = name,
+  badge = null,
+  originalPrice,
+  firstAvailableSize = null,
+} = Astro.props;
+
+const formatPrice = (value: number) =>
+  new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(value);
+
+const badgeStyles: Record<string, string> = {
+  Baru: "bg-ink text-paper",
+  Diskon: "bg-signal text-paper",
+  Terlaris: "bg-paper text-ink border-2 border-ink",
+};
+---
+
+<article
+  class="product-card group relative bg-paper border-2 border-ink flex flex-col"
+  data-product-id={id}
+>
+  <!-- Seluruh card bisa diklik menuju halaman detail produk.
+       Link pakai slug (URL ramah dibaca), tapi data-product-id tetap
+       pakai id asli karena dipakai event sistem cart/wishlist. -->
+  <a
+    href={`/produk/${slug}`}
+    class="absolute inset-0 z-[1]"
+    aria-label={`Lihat detail ${name}`}
+  ></a>
+
+  <!-- Image area -->
+  <div class="relative aspect-[4/5] overflow-hidden border-b-2 border-ink bg-hairline/40">
+    <img
+      src={image}
+      alt={imageAlt}
+      loading="lazy"
+      class="w-full h-full object-cover transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-105"
+    />
+
+    <!-- Badge -->
+    {badge && (
+      <span
+        class:list={[
+          "absolute top-3 left-3 px-2.5 py-1 text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wide",
+          badgeStyles[badge],
+        ]}
+      >
+        {badge}
+      </span>
+    )}
+
+    <!-- Quick actions (wishlist + cart) -->
+    <div class="absolute top-3 right-3 z-[2] flex flex-col gap-2 opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200">
+      <button
+        type="button"
+        class="product-wishlist-btn w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center bg-paper border-2 border-ink text-ink hover:bg-ink hover:text-paper transition-colors duration-200"
+        aria-label={`Tambah ${name} ke favorit`}
+        data-action="wishlist"
+        data-product-id={id}
+      >
+        <Icon name="heart" class="w-4 h-4 sm:w-5 sm:h-5" />
+      </button>
+    </div>
+
+    <!-- Quick add to cart — slides up on hover (desktop), always visible on touch -->
+    <button
+      type="button"
+      class="product-cart-btn absolute bottom-0 left-0 right-0 z-[2] bg-ink text-paper py-3 text-xs sm:text-sm font-body font-semibold flex items-center justify-center gap-2 translate-y-full group-hover:translate-y-0 transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] disabled:bg-smoke disabled:cursor-not-allowed"
+      aria-label={firstAvailableSize ? `Tambah ${name} ke keranjang` : `${name} sedang habis`}
+      data-action="cart"
+      data-product-id={id}
+      data-product-name={name}
+      data-size={firstAvailableSize ?? ""}
+    >
+      <Icon name="bag" class="w-4 h-4" />
+      {firstAvailableSize ? "Tambah ke Keranjang" : "Stok Habis"}
+    </button>
+  </div>
+
+  <!-- Info -->
+  <div class="flex flex-col gap-1 p-3 sm:p-4">
+    <p class="font-mono text-[10px] sm:text-xs text-smoke uppercase tracking-wide">
+      {category}
+    </p>
+    <h3 class="font-display text-base sm:text-lg text-ink leading-tight">
+      {name}
+    </h3>
+    <div class="flex items-center gap-2 mt-1">
+      <span class="font-body font-semibold text-sm sm:text-base text-ink">
+        {formatPrice(price)}
+      </span>
+      {originalPrice && originalPrice > price && (
+        <span class="font-body text-xs sm:text-sm text-smoke line-through">
+          {formatPrice(originalPrice)}
+        </span>
+      )}
+    </div>
+  </div>
+</article>
+
+<style>
+  .product-card {
+    transition: box-shadow 0.2s var(--ease-brutal), transform 0.2s var(--ease-brutal);
+  }
+
+  .product-card:hover {
+    box-shadow: 6px 6px 0 0 var(--color-ink);
+    transform: translate(-2px, -2px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .product-card:hover {
+      transform: none;
+    }
+  }
+
+  /* Pada layar sentuh (no hover), tombol quick-add selalu terlihat */
+  @media (hover: none) {
+    .product-cart-btn {
+      transform: translateY(0);
+    }
+
+    .product-card .opacity-0 {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+</style>

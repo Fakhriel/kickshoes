@@ -1,0 +1,499 @@
+---
+import Icon from "./Icon.astro";
+
+export interface Props {
+  carouselImages?: string[];
+  autoplayInterval?: number;
+  brandLogos?: string[];
+  posters?: {
+    images: string[];
+    href: string;
+    label: string;
+  }[];
+}
+
+const {
+  carouselImages = [
+    "/herobg/download1.webp",
+    "/herobg/newbalance.webp",
+    "/herobg/nike.webp",
+  ],
+  autoplayInterval = 5000,
+  brandLogos = [
+    "/brands/brand-1.svg",
+    "/brands/brand-2.svg",
+    "/brands/brand-3.svg",
+    "/brands/brand-4.svg",
+  ],
+  
+  posters = [
+    {
+      images: ["/posters/download2.webp", "/posters/download3.webp"],
+      href: "/koleksi-baru",
+      label: "Koleksi Pria",
+    },
+    {
+      images: ["/posters/download4.webp", "/posters/download5.webp"],
+      href: "/wanita",
+      label: "Koleksi Wanita",
+    },
+    {
+      images: ["/posters/download6.webp", "/posters/download7.webp"],
+      href: "/sale",
+      label: "Diskon Spesial",
+    },
+  ],
+} = Astro.props;
+---
+
+<section id="hero" class="relative w-full flex flex-col overflow-hidden bg-paper">
+
+
+  <div class="relative w-full h-screen">
+
+    <!-- Carousel background slides -->
+    <div class="absolute inset-0 w-full h-full overflow-hidden pt-16 sm:pt-20 md:pt-24">
+      <div id="carousel-track" class="relative w-full h-full">
+        {carouselImages.map((image, index) => (
+          <div
+            class={`absolute inset-0 w-full h-full transition-opacity duration-700 ease-in-out ${
+              index === 0 ? "opacity-100" : "opacity-0"
+            }`}
+            data-slide-index={index}
+          >
+            <img
+              src={image}
+              alt={`Slide ${index + 1}`}
+              class="w-full h-full object-cover"
+              loading={index === 0 ? "eager" : "lazy"}
+              decoding="async"
+            />
+            <!-- Overlay gradient untuk readability text -->
+            <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/40"></div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <!-- Hero content container -->
+    <div class="relative z-10 w-full h-full flex flex-col items-center justify-end px-6 pb-28 sm:pb-32 md:pb-36">
+
+      <!-- Content Wrapper -->
+      <div class="flex flex-col items-center justify-center w-full max-w-5xl mx-auto text-center">
+
+        <!-- CTA Container -->
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
+          <!-- Primary Button -->
+          <a
+            href="/koleksi-baru"
+            class="group inline-flex items-center justify-center gap-3 bg-black text-white px-10 py-4.5 font-semibold text-lg rounded-2xl transition-all duration-300 w-full sm:w-auto"
+          >
+            Belanja Sekarang
+            <Icon name="arrow-right" class="w-5 h-5 transition-transform group-hover:translate-x-1" />
+          </a>
+
+          <!-- Secondary Button -->
+          <a
+            href="/tentang"
+            class="inline-flex items-center justify-center gap-2 font-semibold text-lg text-white border-b-2 border-white/60 pb-1 hover:border-white hover:text-white transition-all"
+          >
+            Kenali STRIDE
+            <Icon name="arrow-up-right" class="w-4 h-4" />
+          </a>
+        </div>
+
+        <!-- Carousel Indicators -->
+        <div id="carousel-indicators" class="flex items-center gap-2 mt-12">
+          {carouselImages.map((_, index) => (
+            <button
+              type="button"
+              data-indicator={index}
+              class={`h-2.5 rounded-full transition-all duration-300 ${
+                index === 0 ? "w-8 bg-white" : "w-2 bg-white/40 hover:bg-white/70"
+              }`}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Brand logos carousel strip (dibawah hero) -->
+  <div
+    class="relative border-t border-ink bg-ink text-paper overflow-hidden py-3 sm:py-4 md:py-5 z-30"
+  >
+    <div class="logo-carousel-track flex whitespace-nowrap gap-6 sm:gap-8 md:gap-12 px-4">
+      {brandLogos.map((logo, index) => (
+        <div class="logo-item flex items-center justify-center flex-shrink-0">
+          <img
+            src={logo}
+            alt={`Brand logo ${index + 1}`}
+            class="h-8 sm:h-10 md:h-12 lg:h-14 w-auto object-contain opacity-80 hover:opacity-100 transition-opacity"
+            loading="lazy"
+          />
+        </div>
+      ))}
+      {/* Duplicate untuk seamless loop */}
+      {brandLogos.map((logo, index) => (
+        <div class="logo-item flex items-center justify-center flex-shrink-0">
+          <img
+            src={logo}
+            alt={`Brand logo ${index + 1}`}
+            class="h-8 sm:h-10 md:h-12 lg:h-14 w-auto object-contain opacity-80 hover:opacity-100 transition-opacity"
+            loading="lazy"
+          />
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- Featured posters — 1 besar kiri + 2 kecil kanan -->
+  <!-- Tiap poster adalah carousel independen (auto-slide  -->
+  <!-- jalan terus, dots manual muncul saat hover), dan     -->
+  <!-- klik di mana saja pada card tetap menuju produk.     -->
+  <!-- ============================================ -->
+  <div class="relative bg-paper border-b border-ink py-10 sm:py-14 md:py-16 z-30">
+    <div class="max-w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
+        <!-- Poster besar (kiri) -->
+        {posters[0] && (
+          <a
+            href={posters[0].href}
+            class="poster-card group relative block aspect-[4/5] sm:aspect-[16/11] md:aspect-auto md:h-full min-h-[280px] sm:min-h-[360px] overflow-hidden border-2 border-ink"
+            data-poster
+          >
+            <div class="poster-track absolute inset-0 w-full h-full">
+              {posters[0].images.map((image, slideIndex) => (
+                <img
+                  src={image}
+                  alt={`${posters[0].label} ${slideIndex + 1}`}
+                  loading="lazy"
+                  class="poster-slide absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out"
+                  style={`opacity: ${slideIndex === 0 ? 1 : 0}`}
+                  data-poster-slide={slideIndex}
+                />
+              ))}
+            </div>
+            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0"></div>
+
+            {posters[0].images.length > 1 && (
+              <div class="poster-dots absolute top-4 right-4 z-10 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                {posters[0].images.map((_, dotIndex) => (
+                  <span
+                    class={`h-1.5 rounded-full transition-all duration-300 ${
+                      dotIndex === 0 ? "w-5 bg-signal" : "w-1.5 bg-white/50"
+                    }`}
+                    data-poster-dot={dotIndex}
+                  />
+                ))}
+              </div>
+            )}
+
+            <div class="absolute bottom-0 left-0 right-0 p-5 sm:p-6 flex items-center justify-between gap-3">
+              <span class="font-display text-2xl sm:text-3xl md:text-4xl text-paper leading-none">
+                {posters[0].label}
+              </span>
+              <span class="shrink-0 w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-paper text-ink border-2 border-ink group-hover:bg-signal group-hover:border-signal group-hover:text-paper transition-colors duration-200">
+                <Icon name="arrow-up-right" class="w-5 h-5 sm:w-6 sm:h-6" />
+              </span>
+            </div>
+          </a>
+        )}
+
+        <!-- Dua poster kecil ditumpuk (kanan) -->
+        <div class="grid grid-rows-2 gap-3 sm:gap-4 md:gap-6">
+          {posters.slice(1, 3).map((poster) => (
+            <a
+              href={poster.href}
+              class="poster-card group relative block aspect-[16/10] sm:aspect-[16/8] md:aspect-auto md:h-full min-h-[135px] sm:min-h-[170px] overflow-hidden border-2 border-ink"
+              data-poster
+            >
+              <div class="poster-track absolute inset-0 w-full h-full">
+                {poster.images.map((image, slideIndex) => (
+                  <img
+                    src={image}
+                    alt={`${poster.label} ${slideIndex + 1}`}
+                    loading="lazy"
+                    class="poster-slide absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out"
+                    style={`opacity: ${slideIndex === 0 ? 1 : 0}`}
+                    data-poster-slide={slideIndex}
+                  />
+                ))}
+              </div>
+              <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0"></div>
+
+              {poster.images.length > 1 && (
+                <div class="poster-dots absolute top-3 right-3 z-10 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  {poster.images.map((_, dotIndex) => (
+                    <span
+                      class={`h-1.5 rounded-full transition-all duration-300 ${
+                        dotIndex === 0 ? "w-5 bg-signal" : "w-1.5 bg-white/50"
+                      }`}
+                      data-poster-dot={dotIndex}
+                    />
+                  ))}
+                </div>
+              )}
+
+              <div class="absolute bottom-0 left-0 right-0 p-4 sm:p-5 flex items-center justify-between gap-3">
+                <span class="font-display text-lg sm:text-xl md:text-2xl text-paper leading-none">
+                  {poster.label}
+                </span>
+                <span class="shrink-0 w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-paper text-ink border-2 border-ink group-hover:bg-signal group-hover:border-signal group-hover:text-paper transition-colors duration-200">
+                  <Icon name="arrow-up-right" class="w-4 h-4 sm:w-5 sm:h-5" />
+                </span>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { gsap } from "gsap";
+
+  let currentSlide = 0;
+  let totalSlides = 3;
+  let autoplayTimer: ReturnType<typeof setInterval> | undefined;
+  const AUTOPLAY_INTERVAL = 5000;
+  const POSTER_AUTOPLAY_INTERVAL = 4000;
+
+  function goToSlide(index: number): void {
+    const track = document.getElementById("carousel-track");
+    if (!track) return;
+
+    const slides = track.querySelectorAll<HTMLElement>("[data-slide-index]");
+    const indicators = document.querySelectorAll<HTMLElement>("[data-indicator]");
+
+    totalSlides = slides.length;
+
+    if (index < 0 || index >= totalSlides) return;
+
+    // Fade carousel
+    slides.forEach((slide, i) => {
+      gsap.to(slide, {
+        opacity: i === index ? 1 : 0,
+        duration: 0.7,
+        ease: "power2.inOut",
+      });
+    });
+
+    // Update indicators
+    indicators.forEach((indicator, i) => {
+      gsap.to(indicator, {
+        width: i === index ? 32 : 8,
+        backgroundColor: i === index ? "rgb(255, 61, 26)" : "rgba(255, 255, 255, 0.4)",
+        duration: 0.3,
+        ease: "power2.out",
+      });
+    });
+
+    currentSlide = index;
+    resetAutoplay();
+  }
+
+  function nextSlide(): void {
+    goToSlide((currentSlide + 1) % totalSlides);
+  }
+
+  function resetAutoplay(): void {
+    clearInterval(autoplayTimer);
+    autoplayTimer = setInterval(nextSlide, AUTOPLAY_INTERVAL);
+  }
+
+  // ============================================
+  // Poster carousels — tiap poster auto-slide independen,
+  // dots manual (klik untuk pindah slide tanpa ikut buka link).
+  // ============================================
+  function initPosterCarousels(reduceMotion: boolean): void {
+    document.querySelectorAll<HTMLElement>("[data-poster]").forEach((posterEl) => {
+      const slides = posterEl.querySelectorAll<HTMLElement>("[data-poster-slide]");
+      const dots = posterEl.querySelectorAll<HTMLElement>("[data-poster-dot]");
+
+      if (slides.length <= 1) return;
+
+      let posterCurrent = 0;
+      let posterTimer: ReturnType<typeof setInterval> | undefined;
+
+      function showPosterSlide(index: number): void {
+        slides.forEach((slide, i) => {
+          slide.style.opacity = i === index ? "1" : "0";
+        });
+        dots.forEach((dot, i) => {
+          dot.classList.toggle("w-5", i === index);
+          dot.classList.toggle("bg-signal", i === index);
+          dot.classList.toggle("w-1.5", i !== index);
+          dot.classList.toggle("bg-white/50", i !== index);
+        });
+        posterCurrent = index;
+      }
+
+      function resetPosterAutoplay(): void {
+        if (reduceMotion) return;
+        clearInterval(posterTimer);
+        posterTimer = setInterval(() => {
+          showPosterSlide((posterCurrent + 1) % slides.length);
+        }, POSTER_AUTOPLAY_INTERVAL);
+      }
+
+      // Klik dot = pindah slide manual, tanpa ikut navigasi link poster
+      dots.forEach((dot, i) => {
+        dot.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          showPosterSlide(i);
+          resetPosterAutoplay();
+        });
+      });
+
+      resetPosterAutoplay();
+    });
+  }
+
+  // ============================================
+  // Logo marquee — infinite seamless loop.
+  // Track berisi 2x salinan logo yang identik, jadi
+  // translate-X sejauh TEPAT setengah dari scrollWidth
+  // total akan selalu nyambung mulus, berapapun ukuran
+  // gap responsive-nya (gap-6/sm:gap-8/md:gap-12).
+  // Ini menggantikan perhitungan manual offsetWidth + gap
+  // hardcoded yang sebelumnya meleset di breakpoint != mobile,
+  // menyebabkan animasi "lompat"/terlihat dobel.
+  // ============================================
+  function initLogoMarquee(): void {
+    const logoTrack = document.querySelector<HTMLElement>(".logo-carousel-track");
+    if (!logoTrack) return;
+
+    // Bersihkan tween lama kalau initHero terpanggil ulang (mis. astro:page-load)
+    gsap.killTweensOf(logoTrack);
+    gsap.set(logoTrack, { x: 0 });
+
+    const halfWidth = logoTrack.scrollWidth / 2;
+    if (!halfWidth) return;
+
+    gsap.to(logoTrack, {
+      x: -halfWidth,
+      duration: 25,
+      ease: "none",
+      repeat: -1,
+    });
+  }
+
+  function initHero(): void {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // Setup indicator clicks
+    document.querySelectorAll<HTMLElement>("[data-indicator]").forEach((indicator) => {
+      indicator.addEventListener("click", () => {
+        const raw = indicator.getAttribute("data-indicator");
+        if (raw === null) return;
+        const index = parseInt(raw, 10);
+        if (Number.isNaN(index)) return;
+        goToSlide(index);
+      });
+    });
+
+    // Setup scroll cue
+    document.getElementById("scroll-cue")?.addEventListener("click", () => {
+      const nextSection = document.getElementById("hero")?.nextElementSibling;
+      if (nextSection) {
+        nextSection.scrollIntoView({ behavior: "smooth" });
+      }
+    });
+
+    // Start autoplay (hero carousel)
+    resetAutoplay();
+
+    // Start autoplay (poster carousels)
+    initPosterCarousels(reduceMotion);
+
+    // Logo marquee
+    initLogoMarquee();
+
+    // Recalculate marquee width on resize/orientation change so the
+    // loop stays seamless across breakpoints (mobile-first responsive gap)
+    let resizeTimer: ReturnType<typeof setTimeout>;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(initLogoMarquee, 200);
+    });
+
+    if (reduceMotion) return;
+
+    // Hero content animations
+    const tl = gsap.timeline({
+      defaults: { ease: "cubic-bezier(0.34, 1.56, 0.64, 1)" },
+    });
+
+    tl.fromTo(
+      ".hero-eyebrow",
+      { opacity: 0, y: -16 },
+      { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" },
+      0
+    );
+
+    tl.fromTo(
+      ".hero-line-inner",
+      { yPercent: 110, rotate: 2 },
+      {
+        yPercent: 0,
+        rotate: 0,
+        duration: 0.8,
+        stagger: 0.12,
+        ease: "power4.out",
+      },
+      "-=0.3"
+    );
+
+    tl.fromTo(
+      ".hero-desc",
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" },
+      "-=0.35"
+    );
+
+    tl.fromTo(
+      ".hero-cta",
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" },
+      "-=0.4"
+    );
+  }
+
+  // Init on page load
+  document.addEventListener("astro:page-load", initHero);
+
+  // Also init on DOM ready (for non-Astro navigation)
+  if (document.readyState === "complete" || document.readyState === "interactive") {
+    setTimeout(initHero, 100);
+  } else {
+    document.addEventListener("DOMContentLoaded", () => {
+      setTimeout(initHero, 100);
+    });
+  }
+</script>
+
+<style>
+  .hero-line-inner {
+    display: block;
+  }
+
+  .poster-card {
+    transition: box-shadow 0.2s var(--ease-brutal), transform 0.2s var(--ease-brutal);
+  }
+
+  .poster-card:hover {
+    box-shadow: 6px 6px 0 0 var(--color-ink);
+    transform: translate(-2px, -2px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .poster-card:hover {
+      transform: none;
+    }
+  }
+</style>

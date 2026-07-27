@@ -1,0 +1,1404 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Navbar from "../../components/Navbar.astro";
+import Footer from "../../components/Footer.astro";
+import Icon from "../../components/Icon.astro";
+
+// SSR — halaman ini di-render ulang tiap request supaya stok & harga
+// selalu sesuai database, bukan di-generate sekali saat build.
+export const prerender = false;
+
+// URL backend Express. Set PUBLIC_API_URL di .env Astro kamu.
+// Dipakai di server (saat render) DAN browser (saat fetch ongkir/checkout),
+// jadi harus prefix PUBLIC_ supaya Astro expose ke kedua sisi.
+const API_URL = import.meta.env.PUBLIC_API_URL || "http://localhost:4000";
+
+const { slug } = Astro.params;
+
+// Shape ini harus match dengan response findProductById() di backend
+// (kicks-api/src/db/productQueries.js) supaya semua field ke-type dengan benar
+// dan .map() di bawah tidak jatuh ke implicit any.
+interface SizeStock {
+  size: string;
+  stock: number;
+}
+
+interface ColorOption {
+  name: string;
+  hex: string;
+  image: string;
+}
+
+interface ProductDetail {
+  id: string;
+  name: string;
+  category: string;
+  gender: "pria" | "wanita";
+  price: number;
+  originalPrice?: number | null;
+  badge?: "Baru" | "Diskon" | "Terlaris" | null;
+  weightGram: number;
+  description: string;
+  highlights: string[];
+  images: string[];
+  sizes: SizeStock[];
+  colors: ColorOption[];
+  sizeChart: {
+    headers: string[];
+    rows: string[][];
+  };
+}
+
+let product: ProductDetail | null = null;
+try {
+  const res = await fetch(`${API_URL}/api/products/slug/${slug}`);
+  if (!res.ok) {
+    return Astro.redirect("/404");
+  }
+  const json = await res.json();
+  product = json.data;
+} catch (err) {
+  console.error("[produk/[slug]] gagal fetch backend:", err);
+  return Astro.redirect("/500");
+}
+
+if (!product) {
+  return Astro.redirect("/404");
+}
+
+const formatPrice = (value: number) =>
+  new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(value);
+
+const badgeStyles: Record<string, string> = {
+  Baru: "bg-ink text-paper",
+  Diskon: "bg-signal text-paper",
+  Terlaris: "bg-paper text-ink border-2 border-ink",
+};
+
+const totalStock = product.sizes.reduce((sum, s) => sum + s.stock, 0);
+const midtransClientKey = import.meta.env.PUBLIC_MIDTRANS_CLIENT_KEY ?? "";
+const midtransIsProduction = import.meta.env.MIDTRANS_IS_PRODUCTION === "true";
+---
+
+<Layout
+  title={`${product.name} — STRIDE`}
+  description={product.description}
+>
+  <Navbar />
+
+  <main class="bg-paper">
+    <!-- Breadcrumb -->
+    <div class="border-b border-hairline">
+      <div class="max-w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-3 sm:py-4">
+        <nav class="flex items-center gap-2 font-mono text-[10px] sm:text-xs text-smoke uppercase tracking-wide">
+          <a href="/" class="hover:text-ink transition-colors">Beranda</a>
+          <span>/</span>
+          <a href="/#produk" class="hover:text-ink transition-colors">Katalog</a>
+          <span>/</span>
+          <span class="text-ink">{product.name}</span>
+        </nav>
+      </div>
+    </div>
+
+    <div class="max-w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-8 sm:py-10 md:py-14">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10 md:gap-14">
+
+        <!-- ============ KOLOM KIRI: GALERI FOTO ============ -->
+        <section aria-label="Galeri foto produk">
+          <div
+            id="gallery"
+            class="relative border-2 border-ink bg-hairline/40 overflow-hidden"
+            data-current-index="0"
+          >
+            {product.badge && (
+              <span
+                class:list={[
+                  "absolute top-3 left-3 z-10 px-2.5 py-1 text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wide",
+                  badgeStyles[product.badge],
+                ]}
+              >
+                {product.badge}
+              </span>
+            )}
+
+            <!-- Main image / zoom stage -->
+            <div
+              id="gallery-stage"
+              class="relative aspect-square sm:aspect-[4/3] lg:aspect-square cursor-zoom-in overflow-hidden"
+            >
+              {product.images.slice(0, 10).map((img, i) => (
+                <img
+                  src={img}
+                  alt={`${product.name} - foto ${i + 1}`}
+                  loading={i === 0 ? "eager" : "lazy"}
+                  class="gallery-slide absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
+                  style={i === 0 ? "opacity:1" : "opacity:0"}
+                  data-index={i}
+                />
+              ))}
+            </div>
+
+            <!-- Zoom button -->
+            <button
+              type="button"
+              id="zoom-open-btn"
+              class="absolute bottom-3 right-3 z-10 w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center bg-paper border-2 border-ink text-ink hover:bg-ink hover:text-paper transition-colors duration-200"
+              aria-label="Perbesar foto"
+            >
+              <Icon name="zoom-in" class="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+
+            <!-- Prev / Next -->
+            {product.images.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  id="gallery-prev"
+                  class="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center bg-paper/90 border-2 border-ink text-ink hover:bg-ink hover:text-paper transition-colors duration-200"
+                  aria-label="Foto sebelumnya"
+                >
+                  <Icon name="chevron-left" class="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+                <button
+                  type="button"
+                  id="gallery-next"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center bg-paper/90 border-2 border-ink text-ink hover:bg-ink hover:text-paper transition-colors duration-200"
+                  aria-label="Foto berikutnya"
+                >
+                  <Icon name="chevron-right" class="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+
+                <!-- Counter -->
+                <span
+                  id="gallery-counter"
+                  class="absolute bottom-3 left-3 z-10 px-2 py-1 bg-paper/90 border border-ink font-mono text-[10px] sm:text-xs text-ink"
+                >
+                  1 / {product.images.length}
+                </span>
+              </>
+            )}
+          </div>
+
+          <!-- Thumbnails -->
+          {product.images.length > 1 && (
+            <div class="flex gap-2 sm:gap-3 mt-3 sm:mt-4 overflow-x-auto pb-1">
+              {product.images.slice(0, 10).map((img, i) => (
+                <button
+                  type="button"
+                  class="gallery-thumb flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 border-2 border-ink overflow-hidden opacity-50 hover:opacity-100 transition-opacity duration-200 data-[active=true]:opacity-100"
+                  data-index={i}
+                  data-active={i === 0}
+                  aria-label={`Lihat foto ${i + 1}`}
+                >
+                  <img src={img} alt="" class="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <!-- ============ KOLOM KANAN: INFO & AKSI ============ -->
+        <section aria-label="Informasi produk" class="flex flex-col">
+          <p class="font-mono text-xs text-smoke uppercase tracking-wide mb-2">
+            {product.category}
+          </p>
+          <h1 class="font-display text-3xl sm:text-4xl md:text-5xl text-ink leading-tight mb-3">
+            {product.name}
+          </h1>
+
+          <div class="flex items-center gap-3 mb-1">
+            <span class="font-body font-semibold text-xl sm:text-2xl text-ink">
+              {formatPrice(product.price)}
+            </span>
+            {product.originalPrice && product.originalPrice > product.price && (
+              <span class="font-body text-base text-smoke line-through">
+                {formatPrice(product.originalPrice)}
+              </span>
+            )}
+          </div>
+
+          <p class="font-mono text-xs text-smoke uppercase tracking-wide mb-6">
+            Total stok tersedia: {totalStock} pasang
+          </p>
+
+          <p class="font-body text-sm sm:text-base text-charcoal leading-relaxed mb-6">
+            {product.description}
+          </p>
+
+          <!-- Highlights -->
+          <ul class="flex flex-col gap-2 mb-8 border-t border-hairline pt-6">
+            {product.highlights.map((point) => (
+              <li class="flex items-start gap-2 font-body text-sm text-charcoal">
+                <Icon name="check" class="w-4 h-4 mt-0.5 flex-shrink-0 text-ink" />
+                {point}
+              </li>
+            ))}
+          </ul>
+
+          <!-- Color picker -->
+          <div class="mb-6 border-t border-hairline pt-6">
+            <p class="font-mono text-xs text-ink uppercase tracking-wide mb-3">
+              Warna: <span id="selected-color-label" class="text-smoke">{product.colors[0]?.name}</span>
+            </p>
+            <div class="flex gap-2 flex-wrap">
+              {product.colors.map((color, i) => (
+                <button
+                  type="button"
+                  class="color-swatch w-9 h-9 sm:w-10 sm:h-10 border-2 border-ink transition-transform duration-150 data-[active=true]:scale-110 data-[active=true]:ring-2 data-[active=true]:ring-offset-2 data-[active=true]:ring-ink"
+                  style={`background-color:${color.hex}`}
+                  data-color-name={color.name}
+                  data-image={color.image}
+                  data-active={i === 0}
+                  aria-label={`Pilih warna ${color.name}`}
+                  title={color.name}
+                ></button>
+              ))}
+            </div>
+          </div>
+
+          <!-- Size picker -->
+          <div class="mb-2 border-t border-hairline pt-6">
+            <div class="flex items-center justify-between mb-3">
+              <p class="font-mono text-xs text-ink uppercase tracking-wide">
+                Ukuran (EU): <span id="selected-size-label" class="text-smoke">Pilih ukuran</span>
+              </p>
+              <button
+                type="button"
+                id="size-chart-open-btn"
+                class="font-mono text-[10px] sm:text-xs text-ink underline underline-offset-2 hover:text-signal transition-colors"
+              >
+                Lihat size chart
+              </button>
+            </div>
+            <div class="flex gap-2 flex-wrap" id="size-picker">
+              {product.sizes.map((s) => (
+                <button
+                  type="button"
+                  class:list={[
+                    "size-option min-w-[3rem] px-3 py-2 border-2 border-ink font-mono text-sm transition-colors duration-150",
+                    s.stock === 0
+                      ? "bg-hairline/60 text-smoke line-through cursor-not-allowed"
+                      : "bg-paper text-ink hover:bg-ink hover:text-paper data-[active=true]:bg-ink data-[active=true]:text-paper",
+                  ]}
+                  data-size={s.size}
+                  data-stock={s.stock}
+                  disabled={s.stock === 0}
+                >
+                  {s.size}
+                </button>
+              ))}
+            </div>
+            <p id="size-stock-note" class="font-mono text-[10px] sm:text-xs text-smoke mt-2 min-h-[1em]"></p>
+          </div>
+
+          <!-- Quantity -->
+          <div class="mb-8 border-t border-hairline pt-6">
+            <p class="font-mono text-xs text-ink uppercase tracking-wide mb-3">Jumlah</p>
+            <div class="flex items-center gap-3">
+              <div class="flex items-center border-2 border-ink">
+                <button
+                  type="button"
+                  id="qty-decrease"
+                  class="w-10 h-10 flex items-center justify-center text-ink hover:bg-ink hover:text-paper transition-colors duration-150"
+                  aria-label="Kurangi jumlah"
+                >
+                  <Icon name="minus" class="w-4 h-4" />
+                </button>
+                <input
+                  type="number"
+                  id="qty-input"
+                  value="1"
+                  min="1"
+                  max="1"
+                  inputmode="numeric"
+                  class="w-12 h-10 text-center font-mono text-sm bg-paper text-ink border-x-2 border-ink focus:outline-none"
+                  aria-label="Jumlah beli"
+                />
+                <button
+                  type="button"
+                  id="qty-increase"
+                  class="w-10 h-10 flex items-center justify-center text-ink hover:bg-ink hover:text-paper transition-colors duration-150"
+                  aria-label="Tambah jumlah"
+                >
+                  <Icon name="plus" class="w-4 h-4" />
+                </button>
+              </div>
+              <p id="qty-stock-note" class="font-mono text-[10px] sm:text-xs text-smoke">
+                Pilih ukuran dulu
+              </p>
+            </div>
+          </div>
+
+          <!-- Cek ongkir -->
+          <div class="mb-8 border-t border-hairline pt-6">
+            <button
+              type="button"
+              id="ongkir-toggle-btn"
+              class="w-full flex items-center justify-between gap-3 px-4 py-3 border-2 border-ink bg-paper text-ink hover:bg-hairline/40 transition-colors duration-150"
+              aria-expanded="false"
+              aria-controls="ongkir-panel"
+            >
+              <span class="flex items-center gap-2 font-body text-sm font-semibold">
+                <Icon name="truck" class="w-4 h-4" />
+                Cek Ongkos Kirim
+              </span>
+              <Icon name="chevron-right" class="w-4 h-4 transition-transform duration-200" id="ongkir-chevron" />
+            </button>
+
+            <div id="ongkir-panel" class="hidden mt-3 border-2 border-ink p-4 flex flex-col gap-3">
+              <div class="relative">
+                <label for="ongkir-destination" class="font-mono text-[10px] sm:text-xs text-smoke uppercase tracking-wide block mb-1">
+                  Kota / kecamatan tujuan
+                </label>
+                <input
+                  type="text"
+                  id="ongkir-destination"
+                  placeholder="Contoh: Bekasi Timur"
+                  autocomplete="off"
+                  class="w-full px-3 py-2 border-2 border-ink bg-paper text-ink font-body text-sm focus:outline-none focus:bg-hairline/20"
+                />
+                <ul
+                  id="ongkir-suggestions"
+                  class="hidden absolute z-20 left-0 right-0 mt-1 bg-paper border-2 border-ink max-h-48 overflow-y-auto"
+                ></ul>
+              </div>
+
+              <div>
+                <label for="ongkir-courier" class="font-mono text-[10px] sm:text-xs text-smoke uppercase tracking-wide block mb-1">
+                  Kurir
+                </label>
+                <select
+                  id="ongkir-courier"
+                  class="w-full px-3 py-2 border-2 border-ink bg-paper text-ink font-body text-sm focus:outline-none"
+                >
+                  <option value="jne">JNE</option>
+                  <option value="jnt">J&T Express</option>
+                  <option value="sicepat">SiCepat</option>
+                </select>
+              </div>
+
+              <button
+                type="button"
+                id="ongkir-check-btn"
+                class="bg-ink text-paper py-2.5 font-body text-sm font-semibold hover:bg-charcoal transition-colors duration-150"
+                data-destination-id=""
+              >
+                Hitung Ongkir
+              </button>
+
+              <div id="ongkir-results" class="flex flex-col gap-2"></div>
+              <p id="ongkir-error" class="hidden font-mono text-xs text-signal"></p>
+            </div>
+          </div>
+
+          <!-- Ringkasan total — muncul setelah ukuran dipilih, update live saat
+               qty berubah / ongkir dipilih, supaya alurnya jelas: pilih ukuran
+               -> hitung ongkir -> lihat total -> bayar. -->
+          <div id="order-summary" class="hidden mb-6 border-2 border-ink p-4 flex flex-col gap-2">
+            <div class="flex items-center justify-between font-body text-sm text-charcoal">
+              <span>Subtotal (<span id="summary-qty">1</span>x)</span>
+              <span id="summary-subtotal">Rp0</span>
+            </div>
+            <div class="flex items-center justify-between font-body text-sm text-charcoal">
+              <span>Ongkos kirim</span>
+              <span id="summary-shipping">
+                <button type="button" id="summary-shipping-link" class="font-mono text-xs text-signal uppercase tracking-wide hover:underline">
+                  Belum dipilih
+                </button>
+              </span>
+            </div>
+            <div class="flex items-center justify-between font-body text-base font-semibold text-ink border-t border-hairline pt-2 mt-1">
+              <span>Total</span>
+              <span id="summary-total">Rp0</span>
+            </div>
+          </div>
+
+          <!-- CTA: keranjang + beli sekarang -->
+          <div class="flex flex-col sm:flex-row gap-3 mt-auto">
+            <button
+              type="button"
+              id="wishlist-toggle-btn"
+              aria-label="Tambah ke favorit"
+              aria-pressed="false"
+              class="border-2 border-ink text-ink w-12 sm:w-14 flex items-center justify-center hover:bg-hairline/40 transition-colors duration-150 shrink-0"
+            >
+              <Icon name="heart" id="wishlist-toggle-icon" class="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              id="add-to-cart-btn"
+              class="flex-1 border-2 border-ink text-ink py-3.5 font-body font-semibold text-sm flex items-center justify-center gap-2 hover:bg-hairline/40 transition-colors duration-150"
+            >
+              <Icon name="bag" class="w-4 h-4" />
+              Tambah ke Keranjang
+            </button>
+            <button
+              type="button"
+              id="checkout-btn"
+              class="flex-1 bg-ink text-paper py-3.5 font-body font-semibold text-sm flex items-center justify-center gap-2 hover:bg-charcoal transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Beli Sekarang
+            </button>
+          </div>
+          <p id="selection-error" class="hidden font-mono text-xs text-signal mt-2"></p>
+        </section>
+      </div>
+
+      <!-- ============ SIZE CHART (detail produk lanjutan) ============ -->
+      <section class="mt-14 sm:mt-16 md:mt-20 border-t border-ink pt-8 sm:pt-10">
+        <h2 class="font-display text-2xl sm:text-3xl text-ink mb-6">Size Chart</h2>
+        <div class="overflow-x-auto border-2 border-ink">
+          <table class="w-full text-left">
+            <thead>
+              <tr class="bg-ink text-paper">
+                {product.sizeChart.headers.map((h) => (
+                  <th class="px-3 sm:px-4 py-2.5 sm:py-3 font-mono text-[10px] sm:text-xs uppercase tracking-wide">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {product.sizeChart.rows.map((row, i) => (
+                <tr class:list={["border-t border-hairline", i % 2 === 1 && "bg-hairline/20"]}>
+                  {row.map((cell) => (
+                    <td class="px-3 sm:px-4 py-2.5 sm:py-3 font-body text-sm text-charcoal">
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p class="font-mono text-[10px] sm:text-xs text-smoke mt-3">
+          Pengukuran berdasarkan panjang kaki. Jika ragu antar dua ukuran, pilih yang lebih besar.
+        </p>
+      </section>
+    </div>
+  </main>
+
+  <Footer />
+
+  <!-- ============ MODAL: ZOOM FOTO ============ -->
+  <div
+    id="zoom-modal"
+    class="hidden fixed inset-0 z-50 bg-ink/95 flex items-center justify-center p-4"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Perbesar foto produk"
+  >
+    <button
+      type="button"
+      id="zoom-close-btn"
+      class="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center bg-paper border-2 border-ink text-ink hover:bg-signal hover:text-paper hover:border-signal transition-colors duration-150"
+      aria-label="Tutup perbesar foto"
+    >
+      <Icon name="close" class="w-5 h-5" />
+    </button>
+
+    <button
+      type="button"
+      id="zoom-prev"
+      class="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex items-center justify-center bg-paper border-2 border-ink text-ink hover:bg-ink hover:text-paper transition-colors duration-150"
+      aria-label="Foto sebelumnya"
+    >
+      <Icon name="chevron-left" class="w-5 h-5" />
+    </button>
+    <button
+      type="button"
+      id="zoom-next"
+      class="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex items-center justify-center bg-paper border-2 border-ink text-ink hover:bg-ink hover:text-paper transition-colors duration-150"
+      aria-label="Foto berikutnya"
+    >
+      <Icon name="chevron-right" class="w-5 h-5" />
+    </button>
+
+    <div id="zoom-viewport" class="relative w-full h-full max-w-4xl flex items-center justify-center overflow-hidden cursor-zoom-in">
+      <img
+        id="zoom-image"
+        src={product.images[0]}
+        alt={product.name}
+        class="max-w-full max-h-full object-contain transition-transform duration-200 ease-out select-none"
+        draggable="false"
+      />
+    </div>
+
+    <p class="absolute bottom-4 left-1/2 -translate-x-1/2 font-mono text-[10px] sm:text-xs text-paper/70 uppercase tracking-wide">
+      Klik foto untuk zoom in/out
+    </p>
+  </div>
+
+  <!-- ============ MODAL: SIZE CHART ============ -->
+  <div
+    id="size-chart-modal"
+    class="hidden fixed inset-0 z-50 bg-ink/60 flex items-center justify-center p-4"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Size chart"
+  >
+    <div class="relative bg-paper border-2 border-ink max-w-lg w-full max-h-[80vh] overflow-y-auto p-5 sm:p-6">
+      <button
+        type="button"
+        id="size-chart-close-btn"
+        class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center border-2 border-ink text-ink hover:bg-ink hover:text-paper transition-colors duration-150"
+        aria-label="Tutup size chart"
+      >
+        <Icon name="close" class="w-4 h-4" />
+      </button>
+      <h3 class="font-display text-xl sm:text-2xl text-ink mb-4 pr-10">Size Chart</h3>
+      <div class="overflow-x-auto border-2 border-ink">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="bg-ink text-paper">
+              {product.sizeChart.headers.map((h) => (
+                <th class="px-3 py-2 font-mono text-[10px] uppercase tracking-wide">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {product.sizeChart.rows.map((row, i) => (
+              <tr class:list={["border-t border-hairline", i % 2 === 1 && "bg-hairline/20"]}>
+                {row.map((cell) => (
+                  <td class="px-3 py-2 font-body text-sm text-charcoal">{cell}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MODAL: STATUS PEMBAYARAN ============ -->
+  <!-- Muncul langsung di halaman ini setelah Snap Midtrans selesai (sukses/
+       gagal), tidak redirect ke halaman lain. Status "pending" ditangani
+       sebagai "Sedang Diproses" sementara — TIDAK ada status pending yang
+       tersimpan permanen; kalau dalam 10 menit belum lunas, backend akan
+       menganggapnya hangus (expired) saat dicek ulang. -->
+  <div
+    id="payment-status-modal"
+    class="hidden fixed inset-0 z-[90] bg-ink/60 flex items-center justify-center p-4"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Status pembayaran"
+  >
+    <div class="relative bg-paper border-2 border-ink max-w-sm w-full p-6 sm:p-8 flex flex-col items-center text-center gap-4">
+      <div id="payment-status-icon" class="w-16 h-16 rounded-full flex items-center justify-center border-2 border-ink">
+        <Icon name="check" id="payment-status-icon-success" class="w-8 h-8" />
+        <Icon name="truck" id="payment-status-icon-processing" class="w-8 h-8 hidden" />
+        <Icon name="close" id="payment-status-icon-failed" class="w-8 h-8 hidden" />
+      </div>
+      <div>
+        <h3 id="payment-status-title" class="font-display text-xl sm:text-2xl text-ink mb-1">Pembayaran Berhasil</h3>
+        <p id="payment-status-message" class="font-body text-sm text-charcoal"></p>
+      </div>
+      <p id="payment-status-order-id" class="font-mono text-[10px] text-smoke uppercase tracking-wide"></p>
+      <div class="flex flex-col sm:flex-row gap-3 w-full mt-2">
+        <button
+          type="button"
+          id="payment-status-secondary-btn"
+          class="flex-1 border-2 border-ink text-ink py-2.5 font-body text-sm font-semibold hover:bg-hairline/40 transition-colors duration-150"
+        >
+          Tutup
+        </button>
+        <a
+          id="payment-status-primary-btn"
+          href="/profile#riwayat"
+          class="flex-1 bg-ink text-paper py-2.5 font-body text-sm font-semibold hover:bg-charcoal transition-colors duration-150 flex items-center justify-center"
+        >
+          Lihat Riwayat
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Midtrans Snap.js -->
+  <script
+    is:inline
+    src={midtransIsProduction
+      ? "https://app.midtrans.com/snap/snap.js"
+      : "https://app.sandbox.midtrans.com/snap/snap.js"}
+    data-client-key={midtransClientKey}
+  ></script>
+</Layout>
+
+<script define:vars={{ apiUrl: API_URL, productId: product.id, productName: product.name, pricePerItem: product.price, sizes: product.sizes }}>
+  // ====== AUTH HELPER ======
+  // Script ini pakai define:vars sehingga TIDAK BISA memakai `import`
+  // (lihat catatan yang sama di Navbar.astro/AuthState.ts) — jadi akses
+  // localStorage dilakukan langsung di sini, dengan key yang SAMA PERSIS
+  // dengan yang dipakai src/lib/AuthState.ts ("stride:token") supaya
+  // status login tetap konsisten dengan seluruh halaman lain.
+  function getToken() {
+    try {
+      return window.localStorage.getItem("stride:token");
+    } catch {
+      return null;
+    }
+  }
+
+  function isLoggedIn() {
+    return Boolean(getToken());
+  }
+
+  async function authFetch(url, options = {}) {
+    const token = getToken();
+    const headers = new Headers(options.headers ?? {});
+    if (!headers.has("Content-Type") && options.body) {
+      headers.set("Content-Type", "application/json");
+    }
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+    return fetch(url, { ...options, headers });
+  }
+
+  // Memunculkan modal "Perlu Login" yang sudah ada di Navbar.astro, lewat
+  // custom event — sama seperti pola yang dipakai ProductGrid.astro.
+  function requireAuth(action) {
+    window.dispatchEvent(new CustomEvent("stride:auth-required", { bubbles: true, detail: { action } }));
+  }
+
+  function notifyCartChanged() {
+    window.dispatchEvent(new CustomEvent("stride:cart-changed", { bubbles: true }));
+  }
+
+  function notifyWishlistChanged() {
+    window.dispatchEvent(new CustomEvent("stride:wishlist-changed", { bubbles: true }));
+  }
+
+  // ====== STATE ======
+  let selectedSize = null;
+  let selectedStock = 0;
+  let selectedColor = document.querySelector(".color-swatch[data-active='true']")?.dataset.colorName ?? "";
+  let quantity = 1;
+  let shippingCost = 0;
+  let selectedDestinationId = "";
+  let selectedDestinationLabel = "";
+  let isWishlisted = false;
+
+  // ====== GALERI: SLIDER ======
+  const gallery = document.getElementById("gallery");
+  const slides = Array.from(document.querySelectorAll(".gallery-slide"));
+  const thumbs = Array.from(document.querySelectorAll(".gallery-thumb"));
+  const counter = document.getElementById("gallery-counter");
+  let currentIndex = 0;
+
+  function goToSlide(index) {
+    if (index < 0) index = slides.length - 1;
+    if (index >= slides.length) index = 0;
+    currentIndex = index;
+
+    slides.forEach((img, i) => {
+      img.style.opacity = i === index ? "1" : "0";
+    });
+    thumbs.forEach((t, i) => {
+      t.dataset.active = String(i === index);
+    });
+    if (counter) counter.textContent = `${index + 1} / ${slides.length}`;
+    gallery?.setAttribute("data-current-index", String(index));
+  }
+
+  document.getElementById("gallery-prev")?.addEventListener("click", () => goToSlide(currentIndex - 1));
+  document.getElementById("gallery-next")?.addEventListener("click", () => goToSlide(currentIndex + 1));
+  thumbs.forEach((thumb) => {
+    thumb.addEventListener("click", () => goToSlide(Number(thumb.dataset.index)));
+  });
+
+  // Swipe gesture untuk mobile
+  let touchStartX = 0;
+  const stage = document.getElementById("gallery-stage");
+  stage?.addEventListener("touchstart", (e) => {
+    touchStartX = e.touches[0].clientX;
+  }, { passive: true });
+  stage?.addEventListener("touchend", (e) => {
+    const delta = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(delta) > 40) {
+      goToSlide(delta > 0 ? currentIndex - 1 : currentIndex + 1);
+    }
+  }, { passive: true });
+
+  // ====== MODAL ZOOM ======
+  const zoomModal = document.getElementById("zoom-modal");
+  const zoomImage = document.getElementById("zoom-image");
+  const zoomViewport = document.getElementById("zoom-viewport");
+  let isZoomedIn = false;
+
+  function openZoomModal() {
+    if (!zoomModal || !zoomImage) return;
+    zoomImage.src = slides[currentIndex]?.src ?? slides[0].src;
+    zoomModal.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeZoomModal() {
+    zoomModal?.classList.add("hidden");
+    document.body.style.overflow = "";
+    resetZoom();
+  }
+
+  function resetZoom() {
+    isZoomedIn = false;
+    if (zoomImage) zoomImage.style.transform = "scale(1)";
+  }
+
+  document.getElementById("zoom-open-btn")?.addEventListener("click", openZoomModal);
+  document.getElementById("zoom-close-btn")?.addEventListener("click", closeZoomModal);
+  document.getElementById("zoom-prev")?.addEventListener("click", () => {
+    goToSlide(currentIndex - 1);
+    if (zoomImage) zoomImage.src = slides[currentIndex].src;
+    resetZoom();
+  });
+  document.getElementById("zoom-next")?.addEventListener("click", () => {
+    goToSlide(currentIndex + 1);
+    if (zoomImage) zoomImage.src = slides[currentIndex].src;
+    resetZoom();
+  });
+
+  zoomViewport?.addEventListener("click", () => {
+    isZoomedIn = !isZoomedIn;
+    if (zoomImage) zoomImage.style.transform = isZoomedIn ? "scale(2.2)" : "scale(1)";
+  });
+
+  zoomModal?.addEventListener("click", (e) => {
+    if (e.target === zoomModal) closeZoomModal();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (zoomModal?.classList.contains("hidden")) return;
+    if (e.key === "Escape") closeZoomModal();
+    if (e.key === "ArrowLeft") document.getElementById("zoom-prev")?.click();
+    if (e.key === "ArrowRight") document.getElementById("zoom-next")?.click();
+  });
+
+  // ====== MODAL SIZE CHART ======
+  const sizeChartModal = document.getElementById("size-chart-modal");
+  document.getElementById("size-chart-open-btn")?.addEventListener("click", () => {
+    sizeChartModal?.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+  });
+  function closeSizeChart() {
+    sizeChartModal?.classList.add("hidden");
+    document.body.style.overflow = "";
+  }
+  document.getElementById("size-chart-close-btn")?.addEventListener("click", closeSizeChart);
+  sizeChartModal?.addEventListener("click", (e) => {
+    if (e.target === sizeChartModal) closeSizeChart();
+  });
+
+  // ====== COLOR PICKER ======
+  const colorSwatches = Array.from(document.querySelectorAll(".color-swatch"));
+  const colorLabel = document.getElementById("selected-color-label");
+
+  colorSwatches.forEach((swatch) => {
+    swatch.addEventListener("click", () => {
+      colorSwatches.forEach((s) => (s.dataset.active = "false"));
+      swatch.dataset.active = "true";
+      selectedColor = swatch.dataset.colorName ?? "";
+      if (colorLabel) colorLabel.textContent = selectedColor;
+
+      const newImage = swatch.dataset.image;
+      if (newImage && slides[0]) {
+        slides[0].src = newImage;
+        if (currentIndex === 0 && zoomImage) zoomImage.src = newImage;
+      }
+    });
+  });
+
+  // ====== SIZE PICKER ======
+  const sizeOptions = Array.from(document.querySelectorAll(".size-option"));
+  const sizeLabel = document.getElementById("selected-size-label");
+  const sizeStockNote = document.getElementById("size-stock-note");
+  const qtyInput = document.getElementById("qty-input");
+  const qtyStockNote = document.getElementById("qty-stock-note");
+
+  // ====== RINGKASAN TOTAL (live) ======
+  // Dipanggil setiap kali ukuran/qty/ongkir berubah, supaya alurnya jelas:
+  // pilih ukuran -> hitung ongkir -> lihat total di sini -> baru bisa bayar.
+  const orderSummary = document.getElementById("order-summary");
+  const summaryQty = document.getElementById("summary-qty");
+  const summarySubtotal = document.getElementById("summary-subtotal");
+  const summaryShipping = document.getElementById("summary-shipping");
+  const summaryTotal = document.getElementById("summary-total");
+
+  function formatRupiah(value) {
+    return "Rp" + Math.round(value).toLocaleString("id-ID");
+  }
+
+  function updateOrderSummary() {
+    if (!orderSummary) return;
+
+    if (!selectedSize) {
+      orderSummary.classList.add("hidden");
+      return;
+    }
+
+    orderSummary.classList.remove("hidden");
+
+    const subtotal = pricePerItem * quantity;
+    if (summaryQty) summaryQty.textContent = String(quantity);
+    if (summarySubtotal) summarySubtotal.textContent = formatRupiah(subtotal);
+
+    if (shippingCost > 0) {
+      if (summaryShipping) summaryShipping.textContent = formatRupiah(shippingCost);
+    } else if (summaryShipping) {
+      summaryShipping.innerHTML =
+        '<button type="button" id="summary-shipping-link" class="font-mono text-xs text-signal uppercase tracking-wide hover:underline">Belum dipilih</button>';
+      // Re-bind listener karena innerHTML baru menghapus elemen lama.
+      document.getElementById("summary-shipping-link")?.addEventListener("click", openOngkirPanel);
+    }
+
+    if (summaryTotal) summaryTotal.textContent = formatRupiah(subtotal + shippingCost);
+  }
+
+  document.getElementById("summary-shipping-link")?.addEventListener("click", () => openOngkirPanel());
+
+  function updateQuantityLimits() {
+    if (!qtyInput) return;
+    if (!selectedSize) {
+      qtyInput.max = "1";
+      if (qtyStockNote) qtyStockNote.textContent = "Pilih ukuran dulu";
+      return;
+    }
+    qtyInput.max = String(selectedStock);
+    if (Number(qtyInput.value) > selectedStock) {
+      qtyInput.value = String(Math.max(1, selectedStock));
+      quantity = Number(qtyInput.value);
+    }
+    if (qtyStockNote) {
+      qtyStockNote.textContent = `Stok tersedia: ${selectedStock} pasang`;
+    }
+  }
+
+  sizeOptions.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (btn.disabled) return;
+      sizeOptions.forEach((b) => (b.dataset.active = "false"));
+      btn.dataset.active = "true";
+      selectedSize = btn.dataset.size ?? null;
+      selectedStock = Number(btn.dataset.stock ?? 0);
+
+      if (sizeLabel) sizeLabel.textContent = selectedSize;
+      if (sizeStockNote) {
+        sizeStockNote.textContent =
+          selectedStock <= 3
+            ? `Tersisa ${selectedStock} pasang — buruan!`
+            : `Stok tersedia: ${selectedStock} pasang`;
+      }
+      updateQuantityLimits();
+      updateOrderSummary();
+      hideSelectionError();
+    });
+  });
+
+  // ====== QUANTITY ======
+  function setQuantity(newQty) {
+    const max = selectedSize ? selectedStock : 1;
+    quantity = Math.min(Math.max(1, newQty), Math.max(1, max));
+    if (qtyInput) qtyInput.value = String(quantity);
+    updateOrderSummary();
+  }
+
+  document.getElementById("qty-decrease")?.addEventListener("click", () => setQuantity(quantity - 1));
+  document.getElementById("qty-increase")?.addEventListener("click", () => setQuantity(quantity + 1));
+  qtyInput?.addEventListener("change", () => setQuantity(Number(qtyInput.value) || 1));
+
+  // ====== CEK ONGKIR ======
+  const ongkirToggleBtn = document.getElementById("ongkir-toggle-btn");
+  const ongkirPanel = document.getElementById("ongkir-panel");
+  const ongkirChevron = document.getElementById("ongkir-chevron");
+  const ongkirDestInput = document.getElementById("ongkir-destination");
+  const ongkirSuggestions = document.getElementById("ongkir-suggestions");
+  const ongkirCheckBtn = document.getElementById("ongkir-check-btn");
+  const ongkirResults = document.getElementById("ongkir-results");
+  const ongkirError = document.getElementById("ongkir-error");
+  const ongkirCourierSelect = document.getElementById("ongkir-courier");
+
+  // Dipakai tombol "Belum dipilih" di ringkasan total untuk membuka panel
+  // ongkir + fokus ke input tujuan, supaya user langsung tahu harus ke mana.
+  function openOngkirPanel() {
+    ongkirPanel?.classList.remove("hidden");
+    ongkirToggleBtn?.setAttribute("aria-expanded", "true");
+    ongkirChevron?.style.setProperty("transform", "rotate(90deg)");
+    ongkirDestInput?.focus();
+    ongkirPanel?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  ongkirToggleBtn?.addEventListener("click", () => {
+    const isHidden = ongkirPanel?.classList.contains("hidden");
+    ongkirPanel?.classList.toggle("hidden");
+    ongkirToggleBtn.setAttribute("aria-expanded", String(isHidden));
+    ongkirChevron?.style.setProperty("transform", isHidden ? "rotate(90deg)" : "rotate(0deg)");
+  });
+
+  let destinationDebounce;
+  ongkirDestInput?.addEventListener("input", () => {
+    selectedDestinationId = "";
+    clearTimeout(destinationDebounce);
+    const keyword = ongkirDestInput.value.trim();
+
+    if (keyword.length < 3) {
+      ongkirSuggestions?.classList.add("hidden");
+      return;
+    }
+
+    destinationDebounce = setTimeout(async () => {
+      try {
+        const res = await fetch(`${apiUrl}/api/ongkir/destinasi?q=${encodeURIComponent(keyword)}`);
+        const json = await res.json();
+        const items = json.data ?? [];
+
+        if (!ongkirSuggestions) return;
+        ongkirSuggestions.innerHTML = "";
+
+        if (items.length === 0) {
+          ongkirSuggestions.classList.add("hidden");
+          return;
+        }
+
+        items.forEach((item) => {
+          const li = document.createElement("li");
+          li.textContent = item.label ?? item.city_name ?? "Tidak diketahui";
+          li.className = "px-3 py-2 font-body text-sm text-ink hover:bg-hairline/40 cursor-pointer";
+          li.addEventListener("click", () => {
+            ongkirDestInput.value = li.textContent ?? "";
+            selectedDestinationId = String(item.id ?? "");
+            selectedDestinationLabel = li.textContent ?? "";
+            ongkirSuggestions.classList.add("hidden");
+          });
+          ongkirSuggestions.appendChild(li);
+        });
+
+        ongkirSuggestions.classList.remove("hidden");
+      } catch (err) {
+        console.error("Gagal mengambil destinasi:", err);
+      }
+    }, 350);
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!ongkirSuggestions?.contains(e.target) && e.target !== ongkirDestInput) {
+      ongkirSuggestions?.classList.add("hidden");
+    }
+  });
+
+  ongkirCheckBtn?.addEventListener("click", async () => {
+    if (ongkirError) ongkirError.classList.add("hidden");
+    if (ongkirResults) ongkirResults.innerHTML = "";
+
+    if (!selectedDestinationId) {
+      if (ongkirError) {
+        ongkirError.textContent = "Pilih kota/kecamatan tujuan dari daftar saran terlebih dahulu.";
+        ongkirError.classList.remove("hidden");
+      }
+      return;
+    }
+
+    ongkirCheckBtn.textContent = "Menghitung...";
+    ongkirCheckBtn.disabled = true;
+
+    try {
+      const totalWeight = 850 * quantity; // gram, fallback jika weightGram tak terkirim
+      const res = await fetch(`${apiUrl}/api/ongkir/cek`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          destination: selectedDestinationId,
+          weight: totalWeight,
+          courier: ongkirCourierSelect?.value ?? "jne",
+        }),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        throw new Error(json.error ?? "Gagal mengambil data ongkir.");
+      }
+
+      const options = json.options ?? [];
+      if (options.length === 0) {
+        if (ongkirError) {
+          ongkirError.textContent = "Tidak ada layanan tersedia untuk rute ini.";
+          ongkirError.classList.remove("hidden");
+        }
+      } else {
+        options.forEach((opt) => {
+          const row = document.createElement("button");
+          row.type = "button";
+          row.className =
+            "ongkir-option flex items-center justify-between px-3 py-2 border-2 border-ink text-left hover:bg-hairline/40 transition-colors duration-150 data-[active=true]:bg-ink data-[active=true]:text-paper";
+          row.innerHTML = `
+            <span class="font-body text-sm font-semibold">${opt.service} <span class="font-mono text-xs">(${opt.etd} hari)</span></span>
+            <span class="font-mono text-sm">${new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(opt.cost)}</span>
+          `;
+          row.addEventListener("click", () => {
+            document.querySelectorAll(".ongkir-option").forEach((el) => (el.dataset.active = "false"));
+            row.dataset.active = "true";
+            shippingCost = opt.cost;
+            hideSelectionError();
+            updateOrderSummary();
+          });
+          ongkirResults?.appendChild(row);
+        });
+      }
+    } catch (err) {
+      if (ongkirError) {
+        ongkirError.textContent = err.message ?? "Terjadi kesalahan saat menghitung ongkir.";
+        ongkirError.classList.remove("hidden");
+      }
+    } finally {
+      ongkirCheckBtn.textContent = "Hitung Ongkir";
+      ongkirCheckBtn.disabled = false;
+    }
+  });
+
+  // ====== VALIDASI SEBELUM CHECKOUT / ADD TO CART ======
+  const selectionError = document.getElementById("selection-error");
+
+  function showSelectionError(message) {
+    if (!selectionError) return;
+    selectionError.textContent = message;
+    selectionError.classList.remove("text-ink");
+    selectionError.classList.add("text-signal");
+    selectionError.classList.remove("hidden");
+  }
+  function showSelectionSuccess(message) {
+    if (!selectionError) return;
+    selectionError.textContent = message;
+    selectionError.classList.remove("text-signal");
+    selectionError.classList.add("text-ink");
+    selectionError.classList.remove("hidden");
+    setTimeout(() => {
+      if (selectionError.textContent === message) hideSelectionError();
+    }, 2500);
+  }
+  function hideSelectionError() {
+    selectionError?.classList.add("hidden");
+  }
+
+  function validateSelection() {
+    if (!selectedSize) {
+      showSelectionError("Pilih ukuran terlebih dahulu.");
+      return false;
+    }
+    if (selectedStock < 1) {
+      showSelectionError("Ukuran ini sedang habis.");
+      return false;
+    }
+    return true;
+  }
+
+  // Validasi khusus checkout: wajib sudah pilih ongkir, supaya total yang
+  // dikirim ke Midtrans tidak pernah "lupa" ongkir (subtotal sepatu saja).
+  function validateCheckout() {
+    if (!validateSelection()) return false;
+    if (shippingCost <= 0) {
+      showSelectionError("Pilih ongkos kirim terlebih dahulu sebelum membayar.");
+      openOngkirPanel();
+      return false;
+    }
+    return true;
+  }
+
+  // ====== TAMBAH KE KERANJANG ======
+  const addToCartBtn = document.getElementById("add-to-cart-btn");
+
+  addToCartBtn?.addEventListener("click", async () => {
+    if (!validateSelection()) return;
+
+    if (!isLoggedIn()) {
+      requireAuth("cart");
+      return;
+    }
+
+    const originalLabel = addToCartBtn.innerHTML;
+    addToCartBtn.setAttribute("disabled", "true");
+    addToCartBtn.textContent = "Menambahkan...";
+
+    try {
+      const res = await authFetch(`${apiUrl}/api/cart`, {
+        method: "POST",
+        body: JSON.stringify({
+          productId,
+          size: selectedSize,
+          color: selectedColor || null,
+          quantity,
+        }),
+      });
+      const json = await res.json();
+
+      if (res.status === 401) {
+        // Token tersimpan ternyata tidak/tidak lagi valid di backend —
+        // bersihkan status login lokal lalu minta login ulang, daripada
+        // diam-diam gagal tanpa penjelasan ke pengguna.
+        window.localStorage.removeItem("stride:token");
+        window.localStorage.removeItem("stride:user");
+        requireAuth("cart");
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(json.error ?? "Gagal menambahkan ke keranjang.");
+      }
+
+      hideSelectionError();
+      notifyCartChanged();
+      addToCartBtn.innerHTML = originalLabel;
+      showSelectionSuccess("Ditambahkan ke keranjang.");
+    } catch (err) {
+      showSelectionError(err.message ?? "Gagal menambahkan ke keranjang.");
+      addToCartBtn.innerHTML = originalLabel;
+    } finally {
+      addToCartBtn.removeAttribute("disabled");
+    }
+  });
+
+  // ====== WISHLIST TOGGLE ======
+  const wishlistToggleBtn = document.getElementById("wishlist-toggle-btn");
+  const wishlistToggleIcon = document.getElementById("wishlist-toggle-icon");
+
+  function renderWishlistState() {
+    wishlistToggleBtn?.setAttribute("aria-pressed", String(isWishlisted));
+    wishlistToggleBtn?.classList.toggle("bg-ink", isWishlisted);
+    wishlistToggleBtn?.classList.toggle("text-paper", isWishlisted);
+    wishlistToggleIcon?.setAttribute("fill", isWishlisted ? "currentColor" : "none");
+  }
+
+  // Cek status wishlist awal hanya kalau user sudah login — supaya hati
+  // di tombol langsung terisi kalau produk ini sudah ada di wishlist user.
+  async function loadInitialWishlistState() {
+    if (!isLoggedIn()) return;
+    try {
+      const res = await authFetch(`${apiUrl}/api/wishlist`);
+      if (!res.ok) return;
+      const json = await res.json();
+      const items = json.data ?? [];
+      isWishlisted = items.some((item) => item.id === productId);
+      renderWishlistState();
+    } catch (err) {
+      console.error("[wishlist] gagal cek status awal:", err);
+    }
+  }
+  loadInitialWishlistState();
+
+  wishlistToggleBtn?.addEventListener("click", async () => {
+    if (!isLoggedIn()) {
+      requireAuth("wishlist");
+      return;
+    }
+
+    wishlistToggleBtn.setAttribute("disabled", "true");
+
+    try {
+      if (isWishlisted) {
+        const res = await authFetch(`${apiUrl}/api/wishlist/${productId}`, { method: "DELETE" });
+        if (!res.ok) throw new Error("Gagal menghapus dari favorit.");
+        isWishlisted = false;
+        showSelectionSuccess("Dihapus dari favorit.");
+      } else {
+        const res = await authFetch(`${apiUrl}/api/wishlist`, {
+          method: "POST",
+          body: JSON.stringify({ productId }),
+        });
+        if (!res.ok) throw new Error("Gagal menambahkan ke favorit.");
+        isWishlisted = true;
+        showSelectionSuccess("Ditambahkan ke favorit.");
+      }
+      renderWishlistState();
+      notifyWishlistChanged();
+    } catch (err) {
+      showSelectionError(err.message ?? "Gagal memperbarui favorit.");
+    } finally {
+      wishlistToggleBtn.removeAttribute("disabled");
+    }
+  });
+
+  // ====== MODAL STATUS PEMBAYARAN ======
+  const paymentStatusModal = document.getElementById("payment-status-modal");
+  const paymentStatusIcon = document.getElementById("payment-status-icon");
+  const paymentStatusIconSuccess = document.getElementById("payment-status-icon-success");
+  const paymentStatusIconProcessing = document.getElementById("payment-status-icon-processing");
+  const paymentStatusIconFailed = document.getElementById("payment-status-icon-failed");
+  const paymentStatusTitle = document.getElementById("payment-status-title");
+  const paymentStatusMessage = document.getElementById("payment-status-message");
+  const paymentStatusOrderId = document.getElementById("payment-status-order-id");
+  const paymentStatusPrimaryBtn = document.getElementById("payment-status-primary-btn");
+  const paymentStatusSecondaryBtn = document.getElementById("payment-status-secondary-btn");
+
+  function showPaymentStatusModal(kind, orderId) {
+    if (!paymentStatusModal) return;
+
+    const variants = {
+      success: {
+        title: "Pembayaran Berhasil",
+        message: "Terima kasih! Pesananmu sedang kami siapkan untuk dikirim.",
+        ring: "border-ink bg-ink text-paper",
+        showPrimary: true,
+      },
+      processing: {
+        title: "Pembayaran Sedang Diproses",
+        message:
+          "Kami sedang menunggu konfirmasi dari bank/penyedia pembayaranmu. Cek halaman Riwayat dalam beberapa menit — kalau lebih dari 10 menit belum lunas, transaksi ini otomatis hangus.",
+        ring: "border-ink bg-paper text-ink",
+        showPrimary: true,
+      },
+      failed: {
+        title: "Pembayaran Gagal",
+        message: "Transaksi tidak dapat diselesaikan. Silakan coba lagi.",
+        ring: "border-signal bg-signal text-paper",
+        showPrimary: false,
+      },
+    };
+
+    const v = variants[kind] ?? variants.failed;
+
+    if (paymentStatusTitle) paymentStatusTitle.textContent = v.title;
+    if (paymentStatusMessage) paymentStatusMessage.textContent = v.message;
+    if (paymentStatusOrderId) {
+      paymentStatusOrderId.textContent = orderId ? `Order #${orderId}` : "";
+    }
+
+    paymentStatusIconSuccess?.classList.toggle("hidden", kind !== "success");
+    paymentStatusIconProcessing?.classList.toggle("hidden", kind !== "processing");
+    paymentStatusIconFailed?.classList.toggle("hidden", kind !== "failed");
+
+    if (paymentStatusIcon) {
+      paymentStatusIcon.className =
+        "w-16 h-16 rounded-full flex items-center justify-center border-2 " + v.ring;
+    }
+    if (paymentStatusPrimaryBtn) {
+      paymentStatusPrimaryBtn.classList.toggle("hidden", !v.showPrimary);
+    }
+
+    paymentStatusModal.classList.remove("hidden");
+  }
+
+  function hidePaymentStatusModal() {
+    paymentStatusModal?.classList.add("hidden");
+  }
+
+  paymentStatusSecondaryBtn?.addEventListener("click", hidePaymentStatusModal);
+  paymentStatusModal?.addEventListener("click", (e) => {
+    if (e.target === paymentStatusModal) hidePaymentStatusModal();
+  });
+
+  // ====== CHECKOUT MIDTRANS ======
+  const checkoutBtn = document.getElementById("checkout-btn");
+
+  checkoutBtn?.addEventListener("click", async () => {
+    if (!validateCheckout()) return;
+
+    if (!isLoggedIn()) {
+      requireAuth("cart");
+      return;
+    }
+
+    // Pastikan tidak ada modal lain (zoom foto / size chart) yang masih
+    // mengunci body scroll — kalau dibiarkan "hidden", Snap Midtrans bisa
+    // salah hitung tinggi viewport yang tersedia di layar kecil sehingga
+    // tombol bayar di bagian bawah popup jadi tidak bisa di-scroll.
+    document.body.style.overflow = "";
+
+    const originalLabel = checkoutBtn.textContent;
+    checkoutBtn.textContent = "Memproses...";
+    checkoutBtn.disabled = true;
+
+    try {
+      const res = await authFetch(`${apiUrl}/api/payment/transaksi`, {
+        method: "POST",
+        body: JSON.stringify({
+          productId,
+          size: selectedSize,
+          color: selectedColor,
+          quantity,
+          shippingCost,
+          // TODO: ganti dengan data dari form/akun pembeli sesungguhnya
+          customerName: "Pelanggan STRIDE",
+          customerEmail: "pelanggan@example.com",
+          customerPhone: "081200000000",
+        }),
+      });
+
+      const json = await res.json();
+
+      if (res.status === 401) {
+        window.localStorage.removeItem("stride:token");
+        window.localStorage.removeItem("stride:user");
+        requireAuth("cart");
+        return;
+      }
+
+      if (!res.ok || !json.token) {
+        throw new Error(json.error ?? "Gagal membuat transaksi.");
+      }
+
+      const orderId = json.orderId;
+
+      if (typeof window.snap === "undefined") {
+        throw new Error("Midtrans Snap belum termuat. Pastikan koneksi internet stabil.");
+      }
+
+      // Snap dibuka sebagai overlay di halaman ini — TIDAK ADA redirect ke
+      // halaman lain. Hasilnya (sukses/diproses/gagal) ditampilkan lewat
+      // modal status (#payment-status-modal) di halaman yang sama.
+      window.snap.pay(json.token, {
+        onSuccess: () => {
+          showPaymentStatusModal("success", orderId);
+          notifyCartChanged(); // stok berkurang -> jumlah di cart bisa berubah
+        },
+        onPending: () => {
+          // Tidak ada status "pending" yang disimpan/ditampilkan permanen —
+          // ini cuma feedback sementara di layar. Status final (lunas/hangus)
+          // baru muncul di Riwayat setelah backend menerima notifikasi dari
+          // Midtrans atau setelah 10 menit (lihat catatan expiry di backend).
+          showPaymentStatusModal("processing", orderId);
+        },
+        onError: () => {
+          showPaymentStatusModal("failed", orderId);
+        },
+        onClose: () => {
+          // Pengguna menutup popup Snap tanpa menyelesaikan pembayaran.
+          // Order tetap tersimpan sebagai pending di backend, tapi otomatis
+          // dianggap hangus kalau lewat 10 menit tanpa pembayaran — jadi
+          // tidak perlu tindakan apapun di sini.
+        },
+      });
+    } catch (err) {
+      showSelectionError(err.message ?? "Terjadi kesalahan saat memulai pembayaran.");
+    } finally {
+      checkoutBtn.textContent = originalLabel;
+      checkoutBtn.disabled = false;
+    }
+  });
+</script>
+
+<style>
+  .gallery-slide {
+    will-change: opacity;
+  }
+
+  #zoom-image {
+    transform-origin: center;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gallery-slide,
+    #zoom-image {
+      transition: none;
+    }
+  }
+</style>

@@ -1,0 +1,570 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Navbar from "../components/Navbar.astro";
+import Footer from "../components/Footer.astro";
+import Icon from "../components/Icon.astro";
+
+const API_URL = import.meta.env.PUBLIC_API_URL || "http://localhost:4000";
+
+const tabs = [
+  { id: "wishlist", label: "Wishlist" },
+  { id: "keranjang", label: "Keranjang" },
+  { id: "riwayat", label: "Riwayat Pembayaran" },
+];
+---
+
+<Layout
+  title="Profil Saya — STRIDE"
+  description="Kelola wishlist, keranjang, dan riwayat pembayaran kamu di STRIDE."
+>
+  <Navbar />
+
+  <main class="bg-paper min-h-screen" id="profile-main" data-api-url={API_URL}>
+    <!-- Page header -->
+    <section class="border-b border-ink pt-24 sm:pt-28 md:pt-32 pb-8 sm:pb-10">
+      <div class="max-w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
+        <p class="font-mono text-xs text-smoke uppercase tracking-wide mb-3">
+          Beranda / Profil Saya
+        </p>
+        <div class="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <h1 class="font-display text-4xl sm:text-5xl md:text-6xl text-ink leading-none mb-2">
+              Profil Saya
+            </h1>
+            <p class="font-body text-sm sm:text-base text-charcoal">
+              <span id="profile-user-name">User</span> · <span id="profile-user-email" class="text-smoke">user@example.com</span>
+            </p>
+          </div>
+
+          <div class="flex items-center gap-3 shrink-0">
+            <a
+              href="/"
+              class="border-2 border-ink text-ink px-5 py-2.5 sm:py-3 font-body font-semibold text-sm rounded-sm hover:bg-ink/5 transition-colors duration-200 flex items-center gap-2"
+            >
+              <Icon name="arrow-up-right" class="w-4 h-4 rotate-[-135deg]" />
+              Kembali ke Beranda
+            </a>
+            <button
+              type="button"
+              id="profile-logout-btn"
+              class="border-2 border-ink text-ink px-5 py-2.5 sm:py-3 font-body font-semibold text-sm rounded-sm hover:bg-signal hover:border-signal hover:text-paper transition-colors duration-200 flex items-center gap-2"
+            >
+              <Icon name="close" class="w-4 h-4" />
+              Keluar
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tabs -->
+    <section class="max-w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
+      <div class="flex border-b-2 border-ink overflow-x-auto" role="tablist" aria-label="Bagian profil">
+        {tabs.map((tab, i) => (
+          <button
+            type="button"
+            class="profile-tab shrink-0 px-4 sm:px-6 py-4 sm:py-5 font-body font-semibold text-sm sm:text-base border-b-2 -mb-0.5 transition-colors duration-200"
+            class:list={[i === 0 ? "text-ink border-ink" : "text-smoke border-transparent"]}
+            data-tab={tab.id}
+            role="tab"
+            aria-selected={i === 0}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+    </section>
+
+    <!-- Tab panels -->
+    <section class="max-w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-8 sm:py-10 md:py-12">
+
+      <!-- ============ WISHLIST ============ -->
+      <div id="panel-wishlist" class="profile-panel" role="tabpanel">
+        <div id="wishlist-loading" class="hidden font-mono text-xs text-smoke text-center py-16 sm:py-20">
+          Memuat wishlist...
+        </div>
+
+        <div id="wishlist-empty" class="hidden flex flex-col items-center justify-center text-center py-16 sm:py-20">
+          <Icon name="heart" class="w-10 h-10 sm:w-12 sm:h-12 text-smoke mb-4" />
+          <h2 class="font-display text-xl sm:text-2xl text-ink mb-2">Wishlist kamu kosong</h2>
+          <p class="font-body text-sm text-smoke max-w-sm mb-6">
+            Produk yang kamu tandai favorit akan muncul di sini.
+          </p>
+          <a
+            href="/koleksi-baru"
+            class="bg-ink text-paper px-5 py-2.5 sm:py-3 font-body font-semibold text-sm rounded-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 border-2 border-ink"
+          >
+            Jelajahi Koleksi
+          </a>
+        </div>
+
+        <div id="wishlist-grid" class="hidden grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5"></div>
+      </div>
+
+      <!-- ============ KERANJANG ============ -->
+      <div id="panel-keranjang" class="profile-panel hidden" role="tabpanel">
+        <div id="cart-loading" class="hidden font-mono text-xs text-smoke text-center py-16 sm:py-20">
+          Memuat keranjang...
+        </div>
+
+        <div id="cart-empty" class="hidden flex flex-col items-center justify-center text-center py-16 sm:py-20">
+          <Icon name="bag" class="w-10 h-10 sm:w-12 sm:h-12 text-smoke mb-4" />
+          <h2 class="font-display text-xl sm:text-2xl text-ink mb-2">Keranjang kamu kosong</h2>
+          <p class="font-body text-sm text-smoke max-w-sm mb-6">
+            Produk yang kamu tambahkan ke keranjang akan muncul di sini.
+          </p>
+          <a
+            href="/koleksi-baru"
+            class="bg-ink text-paper px-5 py-2.5 sm:py-3 font-body font-semibold text-sm rounded-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 border-2 border-ink"
+          >
+            Mulai Belanja
+          </a>
+        </div>
+
+        <div id="cart-list" class="hidden flex flex-col gap-3 sm:gap-4 max-w-3xl"></div>
+      </div>
+
+      <!-- ============ RIWAYAT PEMBAYARAN ============ -->
+      <div id="panel-riwayat" class="profile-panel hidden" role="tabpanel">
+        <div id="history-loading" class="hidden font-mono text-xs text-smoke text-center py-16 sm:py-20">
+          Memuat riwayat...
+        </div>
+
+        <div id="history-empty" class="hidden flex flex-col items-center justify-center text-center py-16 sm:py-20">
+          <Icon name="truck" class="w-10 h-10 sm:w-12 sm:h-12 text-smoke mb-4" />
+          <h2 class="font-display text-xl sm:text-2xl text-ink mb-2">Belum ada riwayat pembayaran</h2>
+          <p class="font-body text-sm text-smoke max-w-sm mb-6">
+            Transaksi yang sudah selesai akan tercatat di sini.
+          </p>
+          <a
+            href="/koleksi-baru"
+            class="bg-ink text-paper px-5 py-2.5 sm:py-3 font-body font-semibold text-sm rounded-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 border-2 border-ink"
+          >
+            Jelajahi Koleksi
+          </a>
+        </div>
+
+        <div id="history-list" class="hidden flex flex-col gap-3 sm:gap-4 max-w-3xl"></div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <!-- Toast notification (konsisten dengan Navbar) -->
+  <div
+    id="profile-toast"
+    class="fixed bottom-6 sm:bottom-8 left-4 sm:left-6 max-w-xs bg-ink text-paper px-4 sm:px-6 py-3 sm:py-4 rounded-sm shadow-lg translate-y-24 opacity-0 transition-all duration-300 z-[110] flex items-center gap-3"
+  >
+    <span id="profile-toast-message" class="text-sm sm:text-base font-body"></span>
+  </div>
+</Layout>
+
+<script>
+  import { gsap } from "gsap";
+  import { getAuthState, clearAuthenticated } from "../lib/AuthState";
+  import {
+    getWishlist,
+    getCart,
+    removeFromWishlist,
+    updateCartItemQty,
+    removeCartItem,
+    getOrderHistory,
+    ApiError,
+    type WishlistItem,
+    type CartItem,
+  } from "../lib/CartWishlist";
+
+  const formatPrice = (value: number) =>
+    new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(value);
+
+  const formatDate = (value?: string) => {
+    if (!value) return "";
+    try {
+      return new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(
+        new Date(value)
+      );
+    } catch {
+      return value;
+    }
+  };
+
+  // Catatan: status 'pending' tidak akan pernah muncul di sini — backend
+  // (findOrdersByUserId) sudah menyaring order yang belum final, dan order
+  // yang menggantung >10 menit otomatis dianggap 'expired' di sisi server.
+  const ORDER_STATUS_LABEL: Record<string, string> = {
+    paid: "Berhasil Dibayar",
+    failed: "Gagal",
+    expired: "Hangus (Lewat Waktu)",
+    cancelled: "Dibatalkan",
+  };
+
+  function initProfilePage(): void {
+    // ============================================
+    // Guard: halaman ini khusus untuk yang sudah login.
+    // Status dibaca dari sessionStorage (authState.ts) — sumber yang sama
+    // dipakai Navbar — supaya tidak ada lagi "sudah login tapi kelihatan
+    // belum" saat pindah halaman.
+    // ============================================
+    const { isAuthenticated, user } = getAuthState();
+
+    if (!isAuthenticated) {
+      window.location.href = "/";
+      return;
+    }
+
+    const apiUrl =
+      document.getElementById("profile-main")?.getAttribute("data-api-url") ||
+      "http://localhost:4000";
+
+    const nameEl = document.getElementById("profile-user-name");
+    const emailEl = document.getElementById("profile-user-email");
+    if (nameEl) nameEl.textContent = user?.name ?? "User";
+    if (emailEl) emailEl.textContent = user?.email ?? "user@example.com";
+
+    // ============================================
+    // Tabs
+    // ============================================
+    const tabButtons = Array.from(document.querySelectorAll<HTMLButtonElement>(".profile-tab"));
+    const panels: Record<string, HTMLElement | null> = {
+      wishlist: document.getElementById("panel-wishlist"),
+      keranjang: document.getElementById("panel-keranjang"),
+      riwayat: document.getElementById("panel-riwayat"),
+    };
+
+    function activateTab(tabId: string): void {
+      tabButtons.forEach((btn) => {
+        const isActive = btn.dataset.tab === tabId;
+        btn.classList.toggle("text-ink", isActive);
+        btn.classList.toggle("border-ink", isActive);
+        btn.classList.toggle("text-smoke", !isActive);
+        btn.classList.toggle("border-transparent", !isActive);
+        btn.setAttribute("aria-selected", String(isActive));
+      });
+
+      Object.entries(panels).forEach(([id, panel]) => {
+        panel?.classList.toggle("hidden", id !== tabId);
+      });
+
+      history.replaceState(null, "", `#${tabId}`);
+    }
+
+    tabButtons.forEach((btn) => {
+      btn.addEventListener("click", () => activateTab(btn.dataset.tab ?? "wishlist"));
+    });
+
+    // Buka tab sesuai hash URL (mis. dari link "Pesanan Saya" di Navbar → #keranjang)
+    const initialTab = window.location.hash.replace("#", "");
+    if (initialTab && panels[initialTab]) {
+      activateTab(initialTab);
+    }
+
+    // ============================================
+    // Toast helper (mandiri dari Navbar, karena beda scope script)
+    // ============================================
+    function showToast(message: string): void {
+      const toast = document.getElementById("profile-toast");
+      const toastMessage = document.getElementById("profile-toast-message");
+      if (!toast || !toastMessage) return;
+
+      toastMessage.textContent = message;
+      gsap.to(toast, { translateY: 0, opacity: 1, duration: 0.3, ease: "back.out(1.7)" });
+
+      setTimeout(() => {
+        gsap.to(toast, { translateY: 96, opacity: 0, duration: 0.3, ease: "power2.in" });
+      }, 2500);
+    }
+
+    function errorMessage(err: unknown, fallback: string): string {
+      return err instanceof ApiError ? err.message : fallback;
+    }
+
+    // ============================================
+    // WISHLIST
+    // ============================================
+    const wishlistLoading = document.getElementById("wishlist-loading");
+    const wishlistEmpty = document.getElementById("wishlist-empty");
+    const wishlistGrid = document.getElementById("wishlist-grid");
+
+    function renderWishlist(items: WishlistItem[]): void {
+      wishlistLoading?.classList.add("hidden");
+
+      if (items.length === 0) {
+        wishlistEmpty?.classList.remove("hidden");
+        wishlistGrid?.classList.add("hidden");
+        if (wishlistGrid) wishlistGrid.innerHTML = "";
+        return;
+      }
+
+      wishlistEmpty?.classList.add("hidden");
+      wishlistGrid?.classList.remove("hidden");
+      if (!wishlistGrid) return;
+
+      wishlistGrid.innerHTML = items
+        .map(
+          (item) => `
+          <article class="border-2 border-ink bg-paper flex flex-col" data-wishlist-product-id="${item.id}">
+            <a href="/produk/${item.slug}" class="block relative aspect-[4/5] overflow-hidden border-b-2 border-ink bg-hairline/40">
+              ${item.image ? `<img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover" />` : ""}
+            </a>
+            <div class="flex flex-col gap-1 p-3 sm:p-4 flex-1">
+              <p class="font-mono text-[10px] sm:text-xs text-smoke uppercase tracking-wide">${item.category}</p>
+              <a href="/produk/${item.slug}" class="font-display text-base sm:text-lg text-ink leading-tight hover:text-signal transition-colors">${item.name}</a>
+              <span class="font-body font-semibold text-sm sm:text-base text-ink mt-1">${formatPrice(item.price)}</span>
+              <button type="button" class="wishlist-remove-btn mt-auto pt-3 font-mono text-[10px] sm:text-xs text-signal uppercase tracking-wide text-left hover:underline" data-product-id="${item.id}">
+                Hapus dari favorit
+              </button>
+            </div>
+          </article>
+        `
+        )
+        .join("");
+
+      wishlistGrid.querySelectorAll<HTMLButtonElement>(".wishlist-remove-btn").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const productId = btn.dataset.productId;
+          if (!productId) return;
+          btn.disabled = true;
+          try {
+            await removeFromWishlist(apiUrl, productId);
+            window.dispatchEvent(new CustomEvent("stride:wishlist-changed", { bubbles: true }));
+            await loadWishlist();
+            showToast("Dihapus dari favorit");
+          } catch (err) {
+            showToast(errorMessage(err, "Gagal menghapus dari favorit."));
+            btn.disabled = false;
+          }
+        });
+      });
+    }
+
+    async function loadWishlist(): Promise<void> {
+      wishlistLoading?.classList.remove("hidden");
+      wishlistEmpty?.classList.add("hidden");
+      wishlistGrid?.classList.add("hidden");
+      try {
+        const items = await getWishlist(apiUrl);
+        renderWishlist(items);
+      } catch (err) {
+        wishlistLoading?.classList.add("hidden");
+        showToast(errorMessage(err, "Gagal memuat wishlist."));
+      }
+    }
+
+    // ============================================
+    // KERANJANG
+    // ============================================
+    const cartLoading = document.getElementById("cart-loading");
+    const cartEmpty = document.getElementById("cart-empty");
+    const cartList = document.getElementById("cart-list");
+
+    function renderCart(items: CartItem[]): void {
+      cartLoading?.classList.add("hidden");
+
+      if (items.length === 0) {
+        cartEmpty?.classList.remove("hidden");
+        cartList?.classList.add("hidden");
+        if (cartList) cartList.innerHTML = "";
+        return;
+      }
+
+      cartEmpty?.classList.add("hidden");
+      cartList?.classList.remove("hidden");
+      if (!cartList) return;
+
+      cartList.innerHTML = items
+        .map(
+          (item) => `
+          <div class="border-2 border-ink bg-paper flex items-center gap-3 sm:gap-4 p-3 sm:p-4" data-cart-item-id="${item.cartItemId}">
+            <a href="/produk/${item.slug}" class="w-16 h-16 sm:w-20 sm:h-20 shrink-0 bg-hairline/40 border border-ink overflow-hidden">
+              ${item.image ? `<img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover" />` : ""}
+            </a>
+            <div class="flex-1 min-w-0">
+              <a href="/produk/${item.slug}" class="font-body font-semibold text-sm sm:text-base text-ink hover:text-signal transition-colors truncate block">${item.name}</a>
+              <p class="font-mono text-[10px] sm:text-xs text-smoke uppercase tracking-wide mt-1">
+                Ukuran ${item.size}${item.color ? ` · ${item.color}` : ""}
+              </p>
+              <p class="font-body text-sm text-ink font-semibold mt-1">${formatPrice(item.price)}</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button type="button" class="cart-qty-btn w-8 h-8 border-2 border-ink flex items-center justify-center hover:bg-hairline/40" data-cart-item-id="${item.cartItemId}" data-delta="-1" aria-label="Kurangi jumlah">−</button>
+              <span class="font-mono text-sm w-6 text-center">${item.quantity}</span>
+              <button type="button" class="cart-qty-btn w-8 h-8 border-2 border-ink flex items-center justify-center hover:bg-hairline/40" data-cart-item-id="${item.cartItemId}" data-delta="1" aria-label="Tambah jumlah">+</button>
+            </div>
+            <button type="button" class="cart-remove-btn font-mono text-[10px] sm:text-xs text-signal uppercase tracking-wide hover:underline shrink-0" data-cart-item-id="${item.cartItemId}">
+              Hapus
+            </button>
+          </div>
+        `
+        )
+        .join("");
+
+      cartList.querySelectorAll<HTMLButtonElement>(".cart-qty-btn").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const cartItemId = btn.dataset.cartItemId;
+          const delta = Number(btn.dataset.delta ?? "0");
+          if (!cartItemId) return;
+
+          const qtySpan = btn.parentElement?.querySelector("span");
+          const currentQty = Number(qtySpan?.textContent ?? "1");
+          const newQty = currentQty + delta;
+
+          if (newQty < 1) return;
+
+          btn.disabled = true;
+          try {
+            await updateCartItemQty(apiUrl, cartItemId, newQty);
+            window.dispatchEvent(new CustomEvent("stride:cart-changed", { bubbles: true }));
+            await loadCart();
+          } catch (err) {
+            showToast(errorMessage(err, "Gagal memperbarui jumlah."));
+            btn.disabled = false;
+          }
+        });
+      });
+
+      cartList.querySelectorAll<HTMLButtonElement>(".cart-remove-btn").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const cartItemId = btn.dataset.cartItemId;
+          if (!cartItemId) return;
+          btn.disabled = true;
+          try {
+            await removeCartItem(apiUrl, cartItemId);
+            window.dispatchEvent(new CustomEvent("stride:cart-changed", { bubbles: true }));
+            await loadCart();
+            showToast("Item dihapus dari keranjang");
+          } catch (err) {
+            showToast(errorMessage(err, "Gagal menghapus item."));
+            btn.disabled = false;
+          }
+        });
+      });
+    }
+
+    async function loadCart(): Promise<void> {
+      cartLoading?.classList.remove("hidden");
+      cartEmpty?.classList.add("hidden");
+      cartList?.classList.add("hidden");
+      try {
+        const items = await getCart(apiUrl);
+        renderCart(items);
+      } catch (err) {
+        cartLoading?.classList.add("hidden");
+        showToast(errorMessage(err, "Gagal memuat keranjang."));
+      }
+    }
+
+    // ============================================
+    // RIWAYAT PEMBAYARAN
+    // ============================================
+    const historyLoading = document.getElementById("history-loading");
+    const historyEmpty = document.getElementById("history-empty");
+    const historyList = document.getElementById("history-list");
+
+    function renderHistory(orders: Array<Record<string, any>>): void {
+      historyLoading?.classList.add("hidden");
+
+      if (orders.length === 0) {
+        historyEmpty?.classList.remove("hidden");
+        historyList?.classList.add("hidden");
+        if (historyList) historyList.innerHTML = "";
+        return;
+      }
+
+      historyEmpty?.classList.add("hidden");
+      historyList?.classList.remove("hidden");
+      if (!historyList) return;
+
+      historyList.innerHTML = orders
+        .map((order) => {
+          const orderId = order.order_id ?? order.orderId ?? "";
+          const status = order.status ?? "failed";
+          const statusLabel = ORDER_STATUS_LABEL[status] ?? status;
+          const total = Number(order.total_amount ?? order.totalAmount ?? 0);
+          const createdAt = order.created_at ?? order.createdAt;
+
+          const badgeClass =
+            status === "paid"
+              ? "border-ink bg-ink text-paper"
+              : status === "failed" || status === "expired"
+                ? "border-signal text-signal"
+                : "border-ink text-ink";
+
+          return `
+          <div class="border-2 border-ink bg-paper p-3 sm:p-4 flex items-center justify-between gap-3 sm:gap-4 flex-wrap">
+            <div>
+              <p class="font-mono text-[10px] sm:text-xs text-smoke uppercase tracking-wide">Order #${orderId}</p>
+              <p class="font-body text-sm sm:text-base text-ink font-semibold mt-1">${formatPrice(total)}</p>
+              <p class="font-mono text-[10px] sm:text-xs text-smoke mt-1">${formatDate(createdAt)}</p>
+            </div>
+            <span class="font-mono text-[10px] sm:text-xs uppercase tracking-wide px-2.5 py-1 border-2 ${badgeClass}">${statusLabel}</span>
+          </div>
+        `;
+        })
+        .join("");
+    }
+
+    async function loadHistory(): Promise<void> {
+      historyLoading?.classList.remove("hidden");
+      historyEmpty?.classList.add("hidden");
+      historyList?.classList.add("hidden");
+      try {
+        const orders = await getOrderHistory(apiUrl);
+        renderHistory(orders);
+
+        // Kalau masih ada order berstatus "pending", poll ulang setelah
+        // 5 detik supaya status terbaru dari webhook Midtrans tercermin
+        // tanpa user perlu reload manual. Poll berhenti otomatis saat
+        // tidak ada lagi order pending.
+        const hasPending = orders.some((o) => {
+          const s = o.status;
+          return s === "pending";
+        });
+        if (hasPending) {
+          setTimeout(() => loadHistory(), 5000);
+        }
+      } catch (err) {
+        historyLoading?.classList.add("hidden");
+        showToast(errorMessage(err, "Gagal memuat riwayat pembayaran."));
+      }
+    }
+
+    // Muat ketiga tab sekaligus saat halaman dibuka — datanya tidak besar
+    // untuk skala toko ini, dan menghindari "tab kosong" saat user pindah
+    // tab sebelum data sempat di-fetch.
+    loadWishlist();
+    loadCart();
+    loadHistory();
+
+    // Re-load riwayat pembayaran otomatis kalau ada pembayaran yang
+    // baru selesai di tab/halaman lain (event di-dispatch oleh
+    // [slug].astro setelah Snap onSuccess).
+    window.addEventListener("stride:payment-success", () => {
+      loadHistory();
+    });
+
+    // ============================================
+    // Keluar (logout) — clear status login lalu balik ke beranda
+    // ============================================
+    document.getElementById("profile-logout-btn")?.addEventListener("click", () => {
+      clearAuthenticated();
+      showToast("Berhasil keluar");
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 600);
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", initProfilePage);
+  document.addEventListener("astro:page-load", initProfilePage);
+</script>
+
+<style>
+  .profile-tab {
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+</style>
