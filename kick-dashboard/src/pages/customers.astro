@@ -1,0 +1,72 @@
+---
+import DashboardLayout from "../layouts/DashboardLayout.astro";
+import PageHeader from "../components/PageHeader.astro";
+---
+
+<DashboardLayout title="Pelanggan" activeNav="customers">
+  <PageHeader heading="Pelanggan" sub="Data pengguna terdaftar" crumbs={[{ label: "Pengguna" }, { label: "Pelanggan" }]}>
+    <button id="btn-export-customers" type="button" class="btn-secondary text-xs gap-1.5">
+      <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5" stroke="currentColor" stroke-width="1.75">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/>
+        <line x1="9" y1="15" x2="15" y2="15"/>
+      </svg>
+      Export PDF
+    </button>
+  </PageHeader>
+
+  <!-- Filter -->
+  <div class="flex flex-col sm:flex-row gap-3 mb-5">
+    <input type="search" placeholder="Cari nama / email…" class="field-input sm:max-w-xs" />
+    <select class="field-input sm:w-40">
+      <option value="">Semua Status</option>
+      <option value="active">Aktif</option>
+      <option value="inactive">Nonaktif</option>
+    </select>
+  </div>
+
+  <!-- Table -->
+  <div class="panel overflow-hidden">
+    <div class="overflow-x-auto">
+      <table id="customers-table" class="data-table">
+        <thead>
+          <tr>
+            <th class="w-10">#</th>
+            <th>Nama</th>
+            <th class="hidden sm:table-cell">Email</th>
+            <th class="hidden md:table-cell">Telepon</th>
+            <th class="hidden lg:table-cell">Terdaftar</th>
+            <th class="hidden md:table-cell">Total Order</th>
+            <th>Status</th>
+            <th class="text-right">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="customers-body"></tbody>
+      </table>
+    </div>
+    <div id="customers-empty" class="empty-state min-h-56">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+      <p>Belum ada pelanggan terdaftar</p>
+    </div>
+    <div class="flex items-center justify-between px-4 py-3 border-t border-hairline">
+      <span class="font-mono text-[10px] text-smoke">0 pelanggan</span>
+      <div class="flex items-center gap-1">
+        <button type="button" class="btn-secondary text-xs px-2.5 py-1.5" disabled>←</button>
+        <span class="font-mono text-xs px-3 py-1.5 border border-hairline">1</span>
+        <button type="button" class="btn-secondary text-xs px-2.5 py-1.5" disabled>→</button>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script>
+  import { exportTableToPDF } from "../lib/export";
+  document.getElementById("btn-export-customers")?.addEventListener("click", () => {
+    exportTableToPDF("customers-table", { title: "Data Pelanggan", subtitle: "Pengguna terdaftar STRIDE" });
+  });
+</script>

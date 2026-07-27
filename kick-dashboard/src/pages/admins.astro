@@ -1,0 +1,190 @@
+---
+import DashboardLayout from "../layouts/DashboardLayout.astro";
+import PageHeader from "../components/PageHeader.astro";
+---
+
+<DashboardLayout title="Admin" activeNav="admins">
+  <PageHeader heading="Admin" sub="Kelola akun admin dashboard" crumbs={[{ label: "Pengguna" }, { label: "Admin" }]}>
+    <button id="btn-add-admin" type="button" class="btn-primary text-xs gap-1.5">
+      <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Tambah Admin
+    </button>
+  </PageHeader>
+
+  <!-- Daftar admin statis (langsung render) -->
+  <div class="panel overflow-hidden mb-6">
+    <div class="overflow-x-auto">
+      <table id="admins-table" class="data-table">
+        <thead>
+          <tr>
+            <th class="w-10">#</th>
+            <th>Nama</th>
+            <th class="hidden sm:table-cell">Username</th>
+            <th>Role</th>
+            <th class="text-right">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="font-mono text-xs text-smoke">1</td>
+            <td>
+              <div class="flex items-center gap-2.5">
+                <div class="w-7 h-7 bg-signal flex items-center justify-center font-display text-paper text-xs shrink-0">S</div>
+                <span class="font-semibold text-ink">Super Admin</span>
+              </div>
+            </td>
+            <td class="hidden sm:table-cell font-mono text-xs text-charcoal">superadmin</td>
+            <td><span class="badge badge-new">Superadmin</span></td>
+            <td class="text-right">
+              <button type="button" data-username="superadmin" data-name="Super Admin" class="btn-change-pw text-xs text-smoke hover:text-ink font-mono underline-offset-2 hover:underline">
+                Ganti Password
+              </button>
+            </td>
+          </tr>
+          <tr>
+            <td class="font-mono text-xs text-smoke">2</td>
+            <td>
+              <div class="flex items-center gap-2.5">
+                <div class="w-7 h-7 bg-ink flex items-center justify-center font-display text-paper text-xs shrink-0">A</div>
+                <span class="font-semibold text-ink">Admin STRIDE</span>
+              </div>
+            </td>
+            <td class="hidden sm:table-cell font-mono text-xs text-charcoal">admin</td>
+            <td><span class="badge badge-inactive">Admin</span></td>
+            <td class="text-right">
+              <button type="button" data-username="admin" data-name="Admin STRIDE" class="btn-change-pw text-xs text-smoke hover:text-ink font-mono underline-offset-2 hover:underline">
+                Ganti Password
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal: Ganti Password -->
+  <div id="pw-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-ink/50">
+    <div class="bg-paper border-2 border-ink w-full max-w-sm brutal-shadow">
+      <div class="flex items-center justify-between px-5 py-4 border-b-2 border-ink">
+        <div>
+          <h2 class="font-display text-xl text-ink">Ganti Password</h2>
+          <p id="pw-modal-subtitle" class="font-mono text-[10px] text-smoke mt-0.5"></p>
+        </div>
+        <button id="pw-modal-close" type="button" class="text-smoke hover:text-ink p-1">
+          <svg viewBox="0 0 24 24" fill="none" class="w-5 h-5" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-4">
+        <input type="hidden" id="pw-target-username" />
+
+        <div>
+          <label class="field-label" for="pw-current">Password Sekarang</label>
+          <input id="pw-current" type="password" placeholder="••••••••" autocomplete="current-password" class="field-input" />
+        </div>
+        <div>
+          <label class="field-label" for="pw-new">Password Baru</label>
+          <input id="pw-new" type="password" placeholder="Min. 8 karakter" autocomplete="new-password" class="field-input" />
+        </div>
+        <div>
+          <label class="field-label" for="pw-confirm">Konfirmasi Password</label>
+          <input id="pw-confirm" type="password" placeholder="Ulangi password baru" autocomplete="new-password" class="field-input" />
+        </div>
+
+        <div id="pw-error" class="hidden border-2 border-signal bg-signal/5 px-3 py-2">
+          <p id="pw-error-msg" class="font-mono text-xs text-signal"></p>
+        </div>
+      </div>
+
+      <div class="flex gap-3 px-5 py-4 border-t border-hairline">
+        <button id="pw-modal-cancel" type="button" class="btn-secondary text-sm flex-1">Batal</button>
+        <button id="pw-modal-save" type="button" class="btn-primary text-sm flex-1">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Tambah Admin -->
+  <div id="admin-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-ink/50">
+    <div class="bg-paper border-2 border-ink w-full max-w-sm brutal-shadow">
+      <div class="flex items-center justify-between px-5 py-4 border-b-2 border-ink">
+        <h2 class="font-display text-xl text-ink">Tambah Admin</h2>
+        <button id="admin-modal-close" type="button" class="text-smoke hover:text-ink p-1">
+          <svg viewBox="0 0 24 24" fill="none" class="w-5 h-5" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="p-5 space-y-4">
+        <div>
+          <label class="field-label" for="new-admin-name">Nama Lengkap</label>
+          <input id="new-admin-name" type="text" placeholder="Nama Admin" class="field-input" />
+        </div>
+        <div>
+          <label class="field-label" for="new-admin-username">Username</label>
+          <input id="new-admin-username" type="text" placeholder="username" class="field-input" />
+        </div>
+        <div>
+          <label class="field-label" for="new-admin-role">Role</label>
+          <select id="new-admin-role" class="field-input">
+            <option value="admin">Admin</option>
+            <option value="superadmin">Superadmin</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label" for="new-admin-pw">Password Awal</label>
+          <input id="new-admin-pw" type="password" placeholder="Min. 8 karakter" class="field-input" />
+        </div>
+      </div>
+      <div class="flex gap-3 px-5 py-4 border-t border-hairline">
+        <button id="admin-modal-cancel" type="button" class="btn-secondary text-sm flex-1">Batal</button>
+        <button id="admin-modal-save" type="button" class="btn-primary text-sm flex-1">Simpan</button>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script>
+  // TODO: halaman ini di luar scope saat ini (fokus: login + CRUD
+  // produk). Tambah-admin & ganti-password admin lain dinonaktifkan
+  // sementara karena belum ada endpoint backend untuk itu — daripada
+  // memberi kesan berhasil padahal data tidak benar-benar tersimpan.
+
+  function openModal(id: string) { document.getElementById(id)?.classList.replace("hidden", "flex"); }
+  function closeModal(id: string) { document.getElementById(id)?.classList.replace("flex", "hidden"); }
+
+  // Tambah admin modal
+  document.getElementById("btn-add-admin")?.addEventListener("click", () => openModal("admin-modal"));
+  document.getElementById("admin-modal-close")?.addEventListener("click", () => closeModal("admin-modal"));
+  document.getElementById("admin-modal-cancel")?.addEventListener("click", () => closeModal("admin-modal"));
+  document.getElementById("admin-modal-save")?.addEventListener("click", () => {
+    window.showToast?.("Fitur tambah admin belum tersedia", "error");
+    closeModal("admin-modal");
+  });
+
+  // Ganti password
+  document.querySelectorAll<HTMLButtonElement>(".btn-change-pw").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const username = btn.dataset.username ?? "";
+      const name = btn.dataset.name ?? "";
+      (document.getElementById("pw-target-username") as HTMLInputElement).value = username;
+      (document.getElementById("pw-modal-subtitle") as HTMLElement).textContent = `@${username} — ${name}`;
+      (document.getElementById("pw-current") as HTMLInputElement).value = "";
+      (document.getElementById("pw-new") as HTMLInputElement).value = "";
+      (document.getElementById("pw-confirm") as HTMLInputElement).value = "";
+      document.getElementById("pw-error")?.classList.add("hidden");
+      openModal("pw-modal");
+    });
+  });
+
+  document.getElementById("pw-modal-close")?.addEventListener("click", () => closeModal("pw-modal"));
+  document.getElementById("pw-modal-cancel")?.addEventListener("click", () => closeModal("pw-modal"));
+
+  document.getElementById("pw-modal-save")?.addEventListener("click", () => {
+    window.showToast?.("Fitur ganti password belum tersedia", "error");
+    closeModal("pw-modal");
+  });
+</script>

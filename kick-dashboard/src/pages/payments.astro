@@ -1,0 +1,179 @@
+---
+import DashboardLayout from "../layouts/DashboardLayout.astro";
+import PageHeader from "../components/PageHeader.astro";
+---
+
+<DashboardLayout title="Pembayaran" activeNav="payments">
+  <PageHeader heading="Pembayaran" sub="Rekap transaksi pembayaran via Midtrans" crumbs={[{ label: "Transaksi" }, { label: "Pembayaran" }]}>
+    <button id="btn-export-payments" type="button" class="btn-secondary text-xs gap-1.5">
+      <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5" stroke="currentColor" stroke-width="1.75">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/>
+        <line x1="9" y1="15" x2="15" y2="15"/>
+      </svg>
+      Export PDF
+    </button>
+  </PageHeader>
+
+  <!-- Filter -->
+  <div class="flex flex-col sm:flex-row gap-3 mb-5">
+    <input id="search-payments" type="search" placeholder="Cari transaction ID / order ID…" class="field-input sm:max-w-xs" />
+    <select id="filter-payment-status" class="field-input sm:w-36">
+      <option value="">Semua Status</option>
+      <option value="paid">Lunas</option>
+      <option value="pending">Pending</option>
+      <option value="expired">Kadaluarsa</option>
+      <option value="failed">Gagal</option>
+      <option value="cancelled">Dibatalkan</option>
+    </select>
+  </div>
+
+  <!-- Table -->
+  <div class="panel overflow-hidden">
+    <div class="overflow-x-auto">
+      <table id="payments-table" class="data-table">
+        <thead>
+          <tr>
+            <th>Transaction ID</th>
+            <th class="hidden sm:table-cell">Order ID</th>
+            <th>Metode</th>
+            <th>Jumlah</th>
+            <th class="hidden md:table-cell">Tanggal</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="payments-body"></tbody>
+      </table>
+    </div>
+    <div id="payments-empty" class="empty-state min-h-56">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="1" y="4" width="22" height="16" rx="2"/>
+        <line x1="1" y1="10" x2="23" y2="10"/>
+      </svg>
+      <p>Belum ada data pembayaran</p>
+    </div>
+    <div class="flex items-center justify-between px-4 py-3 border-t border-hairline">
+      <span data-payments-count class="font-mono text-[10px] text-smoke">0 transaksi</span>
+      <div class="flex items-center gap-1">
+        <button type="button" class="btn-secondary text-xs px-2.5 py-1.5" disabled>←</button>
+        <span class="font-mono text-xs px-3 py-1.5 border border-hairline">1</span>
+        <button type="button" class="btn-secondary text-xs px-2.5 py-1.5" disabled>→</button>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script>
+  import { exportTableToPDF } from "../lib/export";
+  import { adminApiFetch } from "../lib/auth";
+
+  const apiUrl =
+    document.getElementById("dashboard-root")?.dataset.apiUrl || "http://localhost:4000";
+
+  interface AdminOrder {
+    orderId: string;
+    midtransTransactionId: string | null;
+    totalAmount: number;
+    status: string;
+    createdAt: string;
+    customerName: string;
+  }
+
+  let allOrders: AdminOrder[] = [];
+
+  const tbody = document.getElementById("payments-body") as HTMLTableSectionElement;
+  const emptyState = document.getElementById("payments-empty") as HTMLDivElement;
+  const countLabel = document.querySelector<HTMLSpanElement>("[data-payments-count]");
+  const table = document.getElementById("payments-table") as HTMLTableElement;
+
+  const STATUS_LABELS: Record<string, string> = {
+    pending: "Pending",
+    paid: "Lunas",
+    failed: "Gagal",
+    expired: "Kadaluarsa",
+    cancelled: "Dibatalkan",
+  };
+  const STATUS_CLASSES: Record<string, string> = {
+    pending: "border-ink text-ink",
+    paid: "border-ink bg-ink text-paper",
+    failed: "border-signal text-signal",
+    expired: "border-smoke text-smoke",
+    cancelled: "border-smoke text-smoke",
+  };
+
+  function formatRupiah(value: number): string {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency", currency: "IDR", minimumFractionDigits: 0,
+    }).format(value);
+  }
+  function formatDate(iso: string): string {
+    return new Date(iso).toLocaleDateString("id-ID", {
+      day: "2-digit", month: "short", year: "numeric",
+    });
+  }
+
+  function renderTable(orders: AdminOrder[]): void {
+    tbody.innerHTML = "";
+    const isEmpty = orders.length === 0;
+    table.classList.toggle("hidden", isEmpty);
+    emptyState.classList.toggle("hidden", !isEmpty);
+    if (countLabel) countLabel.textContent = `${orders.length} transaksi`;
+
+    orders.forEach((o) => {
+      const statusLabel = STATUS_LABELS[o.status] ?? o.status;
+      const statusClass = STATUS_CLASSES[o.status] ?? "border-smoke text-smoke";
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="font-mono text-xs break-all">${o.midtransTransactionId ?? "—"}</td>
+        <td class="hidden sm:table-cell font-mono text-xs text-smoke">${o.orderId}</td>
+        <td class="font-mono text-xs text-smoke">Midtrans Snap</td>
+        <td class="font-mono text-xs">${formatRupiah(o.totalAmount)}</td>
+        <td class="hidden md:table-cell font-mono text-xs text-smoke">${formatDate(o.createdAt)}</td>
+        <td>
+          <span class="font-mono text-[10px] uppercase tracking-wide px-2 py-0.5 border-2 ${statusClass}">
+            ${statusLabel}
+          </span>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function applyFilters(): void {
+    const keyword = (document.getElementById("search-payments") as HTMLInputElement)?.value
+      .trim().toLowerCase() ?? "";
+    const status = (document.getElementById("filter-payment-status") as HTMLSelectElement)?.value ?? "";
+
+    const filtered = allOrders.filter((o) => {
+      if (keyword && !(o.midtransTransactionId ?? "").toLowerCase().includes(keyword) &&
+          !o.orderId.toLowerCase().includes(keyword)) return false;
+      if (status && o.status !== status) return false;
+      return true;
+    });
+    renderTable(filtered);
+  }
+
+  async function loadPayments(): Promise<void> {
+    try {
+      const res = await adminApiFetch(`${apiUrl}/api/payment/admin/orders`);
+      const json = await res.json();
+      if (!res.ok) {
+        window.showToast?.(json.error ?? "Gagal memuat data pembayaran", "error");
+        return;
+      }
+      allOrders = json.data ?? [];
+      applyFilters();
+    } catch {
+      window.showToast?.("Tidak bisa terhubung ke server", "error");
+    }
+  }
+
+  document.getElementById("search-payments")?.addEventListener("input", applyFilters);
+  document.getElementById("filter-payment-status")?.addEventListener("change", applyFilters);
+
+  document.getElementById("btn-export-payments")?.addEventListener("click", () => {
+    exportTableToPDF("payments-table", { title: "Rekap Pembayaran", subtitle: "Data transaksi via Midtrans" });
+  });
+
+  loadPayments();
+</script>

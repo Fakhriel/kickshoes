@@ -1,0 +1,239 @@
+---
+import DashboardLayout from "../layouts/DashboardLayout.astro";
+import PageHeader from "../components/PageHeader.astro";
+import StatCard from "../components/StatCard.astro";
+---
+
+<DashboardLayout title="Track ROI" activeNav="roi">
+  <PageHeader heading="Track ROI" sub="Return on Investment — monitoring performa bisnis" crumbs={[{ label: "Utama" }, { label: "Track ROI" }]}>
+    <button id="btn-export-roi" type="button" class="btn-secondary text-xs gap-1.5">
+      <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5" stroke="currentColor" stroke-width="1.75">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/>
+        <line x1="9" y1="15" x2="15" y2="15"/>
+      </svg>
+      Export PDF
+    </button>
+    <!-- Input biaya iklan -->
+    <button id="btn-input-cost" type="button" class="btn-primary text-xs gap-1.5">
+      <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Input Biaya
+    </button>
+  </PageHeader>
+
+  <!-- ROI Formula info -->
+  <div class="mb-6 border-2 border-hairline bg-paper px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2">
+    <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4 text-smoke shrink-0" stroke="currentColor" stroke-width="1.75">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    <p class="font-mono text-[10px] text-smoke uppercase tracking-wide">
+      Formula: ROI = ((Revenue − Total Biaya) / Total Biaya) × 100%
+    </p>
+  </div>
+
+  <!-- Stat cards -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+    <StatCard label="Total Revenue" accent />
+    <StatCard label="Total Biaya" />
+    <StatCard label="Gross Profit" />
+    <StatCard label="ROI %" />
+  </div>
+
+  <!-- Input biaya section -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
+
+    <!-- Rincian Biaya -->
+    <div class="panel">
+      <div class="flex items-center justify-between px-5 py-4 border-b-2 border-ink">
+        <div>
+          <h3 class="font-display text-lg text-ink leading-none">Rincian Biaya</h3>
+          <p class="font-mono text-[9px] text-smoke uppercase tracking-widest mt-1">Input manual per kategori</p>
+        </div>
+        <button type="button" class="btn-primary text-xs px-3 py-1.5">Simpan</button>
+      </div>
+      <div class="p-5 space-y-4">
+
+        <div>
+          <label class="field-label" for="cost-product">HPP / Harga Pokok Produk (Rp)</label>
+          <input id="cost-product" type="number" placeholder="0" class="field-input" />
+        </div>
+        <div>
+          <label class="field-label" for="cost-ads">Biaya Iklan (Rp)</label>
+          <input id="cost-ads" type="number" placeholder="0" class="field-input" />
+        </div>
+        <div>
+          <label class="field-label" for="cost-shipping">Biaya Pengiriman (Rp)</label>
+          <input id="cost-shipping" type="number" placeholder="0" class="field-input" />
+        </div>
+        <div>
+          <label class="field-label" for="cost-ops">Biaya Operasional (Rp)</label>
+          <input id="cost-ops" type="number" placeholder="0" class="field-input" />
+        </div>
+        <div>
+          <label class="field-label" for="cost-other">Lain-lain (Rp)</label>
+          <input id="cost-other" type="number" placeholder="0" class="field-input" />
+        </div>
+
+        <div class="border-t-2 border-ink pt-4">
+          <div class="flex justify-between items-center">
+            <span class="font-mono text-xs text-smoke uppercase tracking-wide">Total Biaya</span>
+            <span id="total-cost-display" class="font-display text-2xl text-ink">Rp 0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROI Hasil -->
+    <div class="panel">
+      <div class="px-5 py-4 border-b-2 border-ink">
+        <h3 class="font-display text-lg text-ink leading-none">Kalkulasi ROI</h3>
+        <p class="font-mono text-[9px] text-smoke uppercase tracking-widest mt-1">Otomatis setelah konek backend</p>
+      </div>
+      <div class="p-5 space-y-4">
+
+        <div class="border-2 border-hairline p-4 space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="font-mono text-[10px] text-smoke uppercase tracking-wide">Revenue</span>
+            <span class="font-mono text-sm text-ink font-semibold">—</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="font-mono text-[10px] text-smoke uppercase tracking-wide">Total Biaya</span>
+            <span id="roi-cost" class="font-mono text-sm text-ink font-semibold">Rp 0</span>
+          </div>
+          <div class="border-t border-hairline pt-3 flex justify-between items-center">
+            <span class="font-mono text-[10px] text-smoke uppercase tracking-wide">Gross Profit</span>
+            <span class="font-mono text-sm text-ink font-semibold">—</span>
+          </div>
+        </div>
+
+        <!-- ROI display besar -->
+        <div class="border-2 border-ink p-5 flex flex-col items-center justify-center gap-1 min-h-32">
+          <p class="font-mono text-[9px] text-smoke uppercase tracking-widest">ROI</p>
+          <p class="font-display text-5xl text-ink leading-none">—%</p>
+          <p class="font-mono text-[9px] text-smoke mt-1">Hubungkan backend untuk data real</p>
+        </div>
+
+        <!-- Period selector -->
+        <div>
+          <label class="field-label" for="roi-period">Periode</label>
+          <select id="roi-period" class="field-input">
+            <option value="this_month">Bulan Ini</option>
+            <option value="last_month">Bulan Lalu</option>
+            <option value="this_year">Tahun Ini</option>
+            <option value="all_time">Semua Waktu</option>
+            <option value="custom">Custom Range</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Biaya log table -->
+  <div class="panel overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-4 border-b-2 border-ink">
+      <div>
+        <h3 class="font-display text-lg text-ink leading-none">Riwayat Input Biaya</h3>
+        <p class="font-mono text-[9px] text-smoke uppercase tracking-widest mt-1">Log semua entri biaya</p>
+      </div>
+    </div>
+    <div class="overflow-x-auto">
+      <table id="roi-table" class="data-table">
+        <thead>
+          <tr>
+            <th>Tanggal</th>
+            <th>Kategori</th>
+            <th>Keterangan</th>
+            <th>Jumlah</th>
+          </tr>
+        </thead>
+        <tbody id="roi-body"></tbody>
+      </table>
+    </div>
+    <div id="roi-empty" class="empty-state min-h-44">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      <p>Belum ada riwayat biaya — masukkan biaya pertama</p>
+    </div>
+  </div>
+
+  <!-- Modal: Input Biaya Cepat -->
+  <div id="cost-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-ink/50">
+    <div class="bg-paper border-2 border-ink w-full max-w-sm brutal-shadow">
+      <div class="flex items-center justify-between px-5 py-4 border-b-2 border-ink">
+        <h2 class="font-display text-xl text-ink">Input Biaya</h2>
+        <button id="cost-modal-close" type="button" class="text-smoke hover:text-ink p-1">
+          <svg viewBox="0 0 24 24" fill="none" class="w-5 h-5" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="p-5 space-y-4">
+        <div>
+          <label class="field-label" for="cost-category">Kategori Biaya</label>
+          <select id="cost-category" class="field-input">
+            <option value="hpp">HPP / Harga Pokok</option>
+            <option value="ads">Iklan</option>
+            <option value="shipping">Pengiriman</option>
+            <option value="ops">Operasional</option>
+            <option value="other">Lain-lain</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label" for="cost-amount">Jumlah (Rp)</label>
+          <input id="cost-amount" type="number" placeholder="0" class="field-input" />
+        </div>
+        <div>
+          <label class="field-label" for="cost-note">Keterangan</label>
+          <input id="cost-note" type="text" placeholder="Contoh: Meta Ads Mei 2026" class="field-input" />
+        </div>
+      </div>
+      <div class="flex gap-3 px-5 py-4 border-t border-hairline">
+        <button id="cost-modal-cancel" type="button" class="btn-secondary text-sm flex-1">Batal</button>
+        <button id="cost-modal-save" type="button" class="btn-primary text-sm flex-1">Simpan</button>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script>
+  import { exportTableToPDF, formatIDR } from "../lib/export";
+
+  function openModal(id: string) { document.getElementById(id)?.classList.replace("hidden", "flex"); }
+  function closeModal(id: string) { document.getElementById(id)?.classList.replace("flex", "hidden"); }
+
+  // Export
+  document.getElementById("btn-export-roi")?.addEventListener("click", () => {
+    exportTableToPDF("roi-table", { title: "Laporan ROI", subtitle: "Riwayat biaya dan kalkulasi ROI STRIDE" });
+  });
+
+  // Cost modal
+  document.getElementById("btn-input-cost")?.addEventListener("click", () => openModal("cost-modal"));
+  document.getElementById("cost-modal-close")?.addEventListener("click", () => closeModal("cost-modal"));
+  document.getElementById("cost-modal-cancel")?.addEventListener("click", () => closeModal("cost-modal"));
+  document.getElementById("cost-modal-save")?.addEventListener("click", () => {
+    window.showToast?.("Biaya berhasil disimpan");
+    closeModal("cost-modal");
+  });
+
+  // Live total cost calculator
+  const costFields = ["cost-product", "cost-ads", "cost-shipping", "cost-ops", "cost-other"];
+  const totalDisplay = document.getElementById("total-cost-display");
+  const roiCostDisplay = document.getElementById("roi-cost");
+
+  function recalcTotal() {
+    let total = 0;
+    costFields.forEach((id) => {
+      const val = parseFloat((document.getElementById(id) as HTMLInputElement)?.value || "0");
+      if (!isNaN(val)) total += val;
+    });
+    if (totalDisplay) totalDisplay.textContent = formatIDR(total);
+    if (roiCostDisplay) roiCostDisplay.textContent = formatIDR(total);
+  }
+
+  costFields.forEach((id) => {
+    document.getElementById(id)?.addEventListener("input", recalcTotal);
+  });
+</script>

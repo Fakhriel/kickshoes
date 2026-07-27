@@ -1,0 +1,600 @@
+---
+import DashboardLayout from "../layouts/DashboardLayout.astro";
+import PageHeader from "../components/PageHeader.astro";
+---
+
+<DashboardLayout title="Produk" activeNav="products">
+  <PageHeader heading="Produk" sub="Kelola katalog produk STRIDE" crumbs={[{ label: "Katalog" }, { label: "Produk" }]}>
+    <button id="btn-export-pdf" type="button" class="btn-secondary text-xs gap-1.5">
+      <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5" stroke="currentColor" stroke-width="1.75">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/>
+        <line x1="9" y1="15" x2="15" y2="15"/>
+      </svg>
+      Export PDF
+    </button>
+    <button id="btn-add-product" type="button" class="btn-primary text-xs gap-1.5">
+      <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Tambah Produk
+    </button>
+  </PageHeader>
+
+  <!-- Filter bar -->
+  <div class="flex flex-col sm:flex-row gap-3 mb-5">
+    <input
+      id="search-product"
+      type="search"
+      placeholder="Cari nama produk…"
+      class="field-input sm:max-w-xs"
+    />
+    <select id="filter-gender" class="field-input sm:w-36">
+      <option value="">Semua Gender</option>
+      <option value="pria">Pria</option>
+      <option value="wanita">Wanita</option>
+    </select>
+    <select id="filter-status" class="field-input sm:w-36">
+      <option value="">Semua Status</option>
+      <option value="active">Aktif</option>
+      <option value="inactive">Nonaktif</option>
+    </select>
+  </div>
+
+  <!-- Table -->
+  <div class="panel overflow-hidden">
+    <div class="overflow-x-auto">
+      <table id="products-table" class="data-table">
+        <thead>
+          <tr>
+            <th class="w-10">#</th>
+            <th>Produk</th>
+            <th class="hidden sm:table-cell">Slug</th>
+            <th>Harga</th>
+            <th class="hidden md:table-cell">Gender</th>
+            <th class="hidden md:table-cell">Stok</th>
+            <th>Status</th>
+            <th class="text-right">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="products-body">
+          <!-- Diisi via JS setelah konek backend -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Empty state -->
+    <div id="products-empty" class="empty-state min-h-56">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+      </svg>
+      <p>Belum ada produk — tambahkan produk pertama</p>
+    </div>
+
+    <!-- Pagination -->
+    <div class="flex items-center justify-between px-4 py-3 border-t border-hairline">
+      <span id="products-count" class="font-mono text-[10px] text-smoke">0 produk</span>
+      <div class="flex items-center gap-1">
+        <button type="button" class="btn-secondary text-xs px-2.5 py-1.5" disabled>←</button>
+        <span class="font-mono text-xs px-3 py-1.5 border border-hairline">1</span>
+        <button type="button" class="btn-secondary text-xs px-2.5 py-1.5" disabled>→</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Tambah / Edit Produk -->
+  <div id="product-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-ink/50">
+    <div class="bg-paper border-2 border-ink w-full max-w-lg max-h-[90vh] overflow-y-auto brutal-shadow">
+      <div class="flex items-center justify-between px-5 py-4 border-b-2 border-ink sticky top-0 bg-paper">
+        <h2 id="modal-title" class="font-display text-xl text-ink">Tambah Produk</h2>
+        <button id="modal-close" type="button" class="text-smoke hover:text-ink transition-colors p-1">
+          <svg viewBox="0 0 24 24" fill="none" class="w-5 h-5" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-4">
+        <input type="hidden" id="product-id" />
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="sm:col-span-2">
+            <label class="field-label" for="product-name">Nama Produk</label>
+            <input id="product-name" type="text" placeholder="STRIDE Runner Pro" class="field-input" />
+          </div>
+          <div>
+            <label class="field-label" for="product-category">Kategori</label>
+            <input id="product-category" type="text" placeholder="Running, Lifestyle, dst" class="field-input" />
+          </div>
+          <div>
+            <label class="field-label" for="product-gender">Gender</label>
+            <select id="product-gender" class="field-input">
+              <option value="pria">Pria</option>
+              <option value="wanita">Wanita</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label" for="product-price">Harga (Rp)</label>
+            <input id="product-price" type="number" placeholder="850000" class="field-input" />
+          </div>
+          <div>
+            <label class="field-label" for="product-original-price">Harga Coret (Rp) <span class="text-smoke normal-case">— opsional</span></label>
+            <input id="product-original-price" type="number" placeholder="1200000" class="field-input" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="field-label" for="product-badge">Badge <span class="text-smoke normal-case">— opsional</span></label>
+            <select id="product-badge" class="field-input">
+              <option value="">Tidak ada</option>
+              <option value="Baru">Baru</option>
+              <option value="Diskon">Diskon</option>
+              <option value="Terlaris">Terlaris</option>
+            </select>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="field-label" for="product-desc">Deskripsi</label>
+            <textarea id="product-desc" rows="3" placeholder="Deskripsi singkat produk…" class="field-input resize-none"></textarea>
+          </div>
+
+          <!-- Gambar produk: multi-URL, gambar pertama jadi cover -->
+          <div class="sm:col-span-2">
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="field-label" style="margin-bottom: 0;">Gambar Produk (URL)</label>
+              <button id="btn-add-image" type="button" class="text-[10px] font-mono uppercase tracking-wide text-signal hover:underline">
+                + Tambah Gambar
+              </button>
+            </div>
+            <div id="image-rows" class="space-y-2"></div>
+            <p class="font-mono text-[9px] text-smoke mt-1.5">Gambar pertama jadi foto sampul (cover) produk.</p>
+          </div>
+
+          <!-- Ukuran & stok: dinamis, minimal 1 baris -->
+          <div class="sm:col-span-2">
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="field-label" style="margin-bottom: 0;">Ukuran &amp; Stok</label>
+              <button id="btn-add-size" type="button" class="text-[10px] font-mono uppercase tracking-wide text-signal hover:underline">
+                + Tambah Ukuran
+              </button>
+            </div>
+            <div id="size-rows" class="space-y-2"></div>
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="field-label" for="product-status">Status</label>
+            <select id="product-status" class="field-input">
+              <option value="active">Aktif</option>
+              <option value="inactive">Nonaktif</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Error inline form -->
+        <div id="product-form-error" class="hidden border-2 border-signal bg-signal/5 px-3 py-2.5">
+          <p class="font-mono text-xs text-signal" id="product-form-error-msg"></p>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 px-5 py-4 border-t border-hairline">
+        <button id="modal-cancel" type="button" class="btn-secondary text-sm">Batal</button>
+        <button id="modal-save" type="button" class="btn-primary text-sm">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Konfirmasi Hapus -->
+  <div id="delete-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-ink/50">
+    <div class="bg-paper border-2 border-ink w-full max-w-sm brutal-shadow">
+      <div class="px-5 py-4 border-b-2 border-ink">
+        <h2 class="font-display text-xl text-ink">Hapus Produk?</h2>
+      </div>
+      <div class="px-5 py-4">
+        <p class="font-body text-sm text-charcoal">Produk <strong id="delete-product-name" class="text-ink"></strong> akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.</p>
+      </div>
+      <div class="flex gap-3 px-5 py-4 border-t border-hairline">
+        <button id="delete-cancel" type="button" class="btn-secondary text-sm flex-1">Batal</button>
+        <button id="delete-confirm" type="button" class="btn-danger text-sm flex-1">Hapus</button>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script>
+  import { exportTableToPDF } from "../lib/export";
+  import { adminApiFetch } from "../lib/auth";
+
+  const apiUrl =
+    document.getElementById("dashboard-root")?.dataset.apiUrl || "http://localhost:4000";
+
+  interface AdminProduct {
+    id: string;
+    slug: string;
+    name: string;
+    category: string;
+    gender: "pria" | "wanita";
+    price: number;
+    originalPrice: number | null;
+    badge: "Baru" | "Diskon" | "Terlaris" | null;
+    isActive: number | boolean;
+    image: string | null;
+    totalStock: number;
+  }
+
+  interface ProductDetail extends AdminProduct {
+    description: string;
+    images: string[];
+    sizes: { size: string; stock: number }[];
+  }
+
+  let allProducts: AdminProduct[] = [];
+  let productBeingDeleted: { id: string; name: string } | null = null;
+
+  const tableBody = document.getElementById("products-body") as HTMLTableSectionElement;
+  const emptyState = document.getElementById("products-empty") as HTMLDivElement;
+  const countLabel = document.getElementById("products-count") as HTMLSpanElement;
+  const table = document.getElementById("products-table") as HTMLTableElement;
+
+  function formatRupiah(value: number): string {
+    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(value);
+  }
+
+  // ─── Render tabel ───────────────────────────────────────────────
+  function renderTable(products: AdminProduct[]): void {
+    tableBody.innerHTML = "";
+
+    const isEmpty = products.length === 0;
+    table.classList.toggle("hidden", isEmpty);
+    emptyState.classList.toggle("hidden", !isEmpty);
+    countLabel.textContent = `${products.length} produk`;
+
+    products.forEach((p, index) => {
+      const isActive = Boolean(p.isActive);
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="font-mono text-xs text-smoke">${index + 1}</td>
+        <td>
+          <div class="flex items-center gap-2.5">
+            <img src="${p.image ?? "/favicon.svg"}" alt="${p.name}" class="w-9 h-9 object-cover border border-hairline shrink-0" />
+            <div class="min-w-0">
+              <p class="font-semibold text-ink truncate">${p.name}</p>
+              <p class="font-mono text-[10px] text-smoke truncate">${p.category}</p>
+            </div>
+          </div>
+        </td>
+        <td class="hidden sm:table-cell font-mono text-xs text-smoke">${p.slug}</td>
+        <td class="font-mono text-xs">${formatRupiah(p.price)}</td>
+        <td class="hidden md:table-cell capitalize text-xs">${p.gender}</td>
+        <td class="hidden md:table-cell font-mono text-xs">${p.totalStock}</td>
+        <td>
+          <span class="px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide border ${isActive ? "border-ink text-ink" : "border-smoke text-smoke"}">
+            ${isActive ? "Aktif" : "Nonaktif"}
+          </span>
+        </td>
+        <td class="text-right whitespace-nowrap">
+          <button type="button" class="btn-edit-product text-xs px-2 py-1 hover:underline" data-id="${p.id}">Edit</button>
+          <button type="button" class="btn-delete-product text-xs px-2 py-1 text-signal hover:underline" data-id="${p.id}" data-name="${p.name}">Hapus</button>
+        </td>
+      `;
+      tableBody.appendChild(tr);
+    });
+
+    table.querySelectorAll<HTMLButtonElement>(".btn-edit-product").forEach((btn) => {
+      btn.addEventListener("click", () => openEditModal(btn.dataset.id!));
+    });
+    table.querySelectorAll<HTMLButtonElement>(".btn-delete-product").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        productBeingDeleted = { id: btn.dataset.id!, name: btn.dataset.name! };
+        (document.getElementById("delete-product-name") as HTMLElement).textContent = productBeingDeleted.name;
+        openModal("delete-modal");
+      });
+    });
+  }
+
+  function applyFilters(): void {
+    const keyword = (document.getElementById("search-product") as HTMLInputElement).value.trim().toLowerCase();
+    const gender = (document.getElementById("filter-gender") as HTMLSelectElement).value;
+    const status = (document.getElementById("filter-status") as HTMLSelectElement).value;
+
+    const filtered = allProducts.filter((p) => {
+      if (keyword && !p.name.toLowerCase().includes(keyword)) return false;
+      if (gender && p.gender !== gender) return false;
+      if (status === "active" && !p.isActive) return false;
+      if (status === "inactive" && p.isActive) return false;
+      return true;
+    });
+
+    renderTable(filtered);
+  }
+
+  async function loadProducts(): Promise<void> {
+    try {
+      const res = await adminApiFetch(`${apiUrl}/api/products/admin`);
+      const json = await res.json();
+      if (!res.ok) {
+        window.showToast?.(json.error ?? "Gagal memuat produk", "error");
+        return;
+      }
+      allProducts = json.data ?? [];
+      applyFilters();
+    } catch (err) {
+      console.error("[loadProducts] gagal fetch backend:", err);
+      window.showToast?.("Tidak bisa terhubung ke server", "error");
+    }
+  }
+
+  document.getElementById("search-product")?.addEventListener("input", applyFilters);
+  document.getElementById("filter-gender")?.addEventListener("change", applyFilters);
+  document.getElementById("filter-status")?.addEventListener("change", applyFilters);
+
+  // ─── Modal helpers ────────────────────────────────────────────────
+  function openModal(id: string): void {
+    const el = document.getElementById(id);
+    el?.classList.remove("hidden");
+    el?.classList.add("flex");
+  }
+  function closeModal(id: string): void {
+    const el = document.getElementById(id);
+    el?.classList.add("hidden");
+    el?.classList.remove("flex");
+  }
+
+  // ─── Baris dinamis: Ukuran & Stok ──────────────────────────────────
+  const sizeRowsContainer = document.getElementById("size-rows") as HTMLDivElement;
+
+  function addSizeRow(size = "", stock = ""): void {
+    const row = document.createElement("div");
+    row.className = "flex gap-2 size-row";
+    row.innerHTML = `
+      <input type="text" placeholder="Ukuran (mis. 42)" class="field-input size-input flex-1" value="${size}" />
+      <input type="number" placeholder="Stok" min="0" class="field-input stock-input w-24" value="${stock}" />
+      <button type="button" class="btn-remove-row btn-secondary px-2.5" aria-label="Hapus ukuran">×</button>
+    `;
+    row.querySelector(".btn-remove-row")?.addEventListener("click", () => {
+      // Selalu sisakan minimal 1 baris supaya form tidak pernah
+      // ke-submit tanpa ukuran sama sekali.
+      if (sizeRowsContainer.children.length > 1) row.remove();
+    });
+    sizeRowsContainer.appendChild(row);
+  }
+
+  document.getElementById("btn-add-size")?.addEventListener("click", () => addSizeRow());
+
+  function getSizesFromForm(): { size: string; stock: number }[] {
+    return Array.from(sizeRowsContainer.querySelectorAll(".size-row"))
+      .map((row) => {
+        const size = (row.querySelector(".size-input") as HTMLInputElement).value.trim();
+        const stock = Number((row.querySelector(".stock-input") as HTMLInputElement).value) || 0;
+        return { size, stock };
+      })
+      .filter((s) => s.size);
+  }
+
+  // ─── Baris dinamis: Gambar (URL) ───────────────────────────────────
+  const imageRowsContainer = document.getElementById("image-rows") as HTMLDivElement;
+
+  function addImageRow(url = ""): void {
+    const row = document.createElement("div");
+    row.className = "flex gap-2 image-row";
+    row.innerHTML = `
+      <input type="text" placeholder="https://...jpg" class="field-input image-input flex-1" value="${url}" />
+      <button type="button" class="btn-remove-row btn-secondary px-2.5" aria-label="Hapus gambar">×</button>
+    `;
+    row.querySelector(".btn-remove-row")?.addEventListener("click", () => {
+      if (imageRowsContainer.children.length > 1) row.remove();
+    });
+    imageRowsContainer.appendChild(row);
+  }
+
+  document.getElementById("btn-add-image")?.addEventListener("click", () => addImageRow());
+
+  function getImagesFromForm(): string[] {
+    return Array.from(imageRowsContainer.querySelectorAll(".image-input"))
+      .map((input) => (input as HTMLInputElement).value.trim())
+      .filter(Boolean);
+  }
+
+  // ─── Form error helper ──────────────────────────────────────────
+  function showFormError(msg: string): void {
+    const box = document.getElementById("product-form-error");
+    const msgEl = document.getElementById("product-form-error-msg");
+    if (msgEl) msgEl.textContent = msg;
+    box?.classList.remove("hidden");
+  }
+  function hideFormError(): void {
+    document.getElementById("product-form-error")?.classList.add("hidden");
+  }
+
+  function resetForm(): void {
+    (document.getElementById("product-id") as HTMLInputElement).value = "";
+    (document.getElementById("product-name") as HTMLInputElement).value = "";
+    (document.getElementById("product-category") as HTMLInputElement).value = "";
+    (document.getElementById("product-gender") as HTMLSelectElement).value = "pria";
+    (document.getElementById("product-price") as HTMLInputElement).value = "";
+    (document.getElementById("product-original-price") as HTMLInputElement).value = "";
+    (document.getElementById("product-badge") as HTMLSelectElement).value = "";
+    (document.getElementById("product-desc") as HTMLTextAreaElement).value = "";
+    (document.getElementById("product-status") as HTMLSelectElement).value = "active";
+    sizeRowsContainer.innerHTML = "";
+    imageRowsContainer.innerHTML = "";
+    addSizeRow();
+    addImageRow();
+    hideFormError();
+  }
+
+  // ─── Tambah produk ──────────────────────────────────────────────
+  document.getElementById("btn-add-product")?.addEventListener("click", () => {
+    resetForm();
+    (document.getElementById("modal-title") as HTMLElement).textContent = "Tambah Produk";
+    (document.getElementById("modal-save") as HTMLButtonElement).textContent = "Simpan";
+    openModal("product-modal");
+  });
+
+  // ─── Edit produk: ambil detail lengkap dari backend ───────────────
+  async function openEditModal(id: string): Promise<void> {
+    resetForm();
+    try {
+      const res = await adminApiFetch(`${apiUrl}/api/products/${id}`);
+      const json = await res.json();
+      if (!res.ok) {
+        window.showToast?.(json.error ?? "Gagal memuat detail produk", "error");
+        return;
+      }
+      const product: ProductDetail = json.data;
+
+      (document.getElementById("product-id") as HTMLInputElement).value = product.id;
+      (document.getElementById("product-name") as HTMLInputElement).value = product.name;
+      (document.getElementById("product-category") as HTMLInputElement).value = product.category;
+      (document.getElementById("product-gender") as HTMLSelectElement).value = product.gender;
+      (document.getElementById("product-price") as HTMLInputElement).value = String(product.price);
+      (document.getElementById("product-original-price") as HTMLInputElement).value =
+        product.originalPrice != null ? String(product.originalPrice) : "";
+      (document.getElementById("product-badge") as HTMLSelectElement).value = product.badge ?? "";
+      (document.getElementById("product-desc") as HTMLTextAreaElement).value = product.description;
+      (document.getElementById("product-status") as HTMLSelectElement).value = product.isActive ? "active" : "inactive";
+
+      imageRowsContainer.innerHTML = "";
+      (product.images.length ? product.images : [""]).forEach((url) => addImageRow(url));
+
+      sizeRowsContainer.innerHTML = "";
+      (product.sizes.length ? product.sizes : [{ size: "", stock: 0 }]).forEach((s) =>
+        addSizeRow(s.size, String(s.stock))
+      );
+
+      (document.getElementById("modal-title") as HTMLElement).textContent = "Edit Produk";
+      (document.getElementById("modal-save") as HTMLButtonElement).textContent = "Simpan Perubahan";
+      openModal("product-modal");
+    } catch (err) {
+      console.error("[openEditModal] gagal fetch backend:", err);
+      window.showToast?.("Tidak bisa terhubung ke server", "error");
+    }
+  }
+
+  document.getElementById("modal-close")?.addEventListener("click", () => closeModal("product-modal"));
+  document.getElementById("modal-cancel")?.addEventListener("click", () => closeModal("product-modal"));
+
+  // ─── Submit Create / Update ───────────────────────────────────────
+  document.getElementById("modal-save")?.addEventListener("click", async () => {
+    hideFormError();
+
+    const id = (document.getElementById("product-id") as HTMLInputElement).value;
+    const name = (document.getElementById("product-name") as HTMLInputElement).value.trim();
+    const category = (document.getElementById("product-category") as HTMLInputElement).value.trim();
+    const gender = (document.getElementById("product-gender") as HTMLSelectElement).value;
+    const price = (document.getElementById("product-price") as HTMLInputElement).value;
+    const originalPrice = (document.getElementById("product-original-price") as HTMLInputElement).value;
+    const badge = (document.getElementById("product-badge") as HTMLSelectElement).value;
+    const description = (document.getElementById("product-desc") as HTMLTextAreaElement).value.trim();
+    const isActive = (document.getElementById("product-status") as HTMLSelectElement).value === "active";
+    const images = getImagesFromForm();
+    const sizes = getSizesFromForm();
+
+    // Validasi dasar di client — validasi penuh & otoritatif tetap di
+    // backend (lihat validateProductInput di productController.js),
+    // ini cuma supaya admin tidak perlu menunggu round-trip network
+    // untuk kesalahan yang jelas-jelas terlihat dari form.
+    if (!name || !category || !price || !description) {
+      showFormError("Nama, kategori, harga, dan deskripsi wajib diisi.");
+      return;
+    }
+    if (images.length === 0) {
+      showFormError("Minimal 1 gambar (URL) wajib diisi.");
+      return;
+    }
+    if (sizes.length === 0) {
+      showFormError("Minimal 1 ukuran wajib diisi.");
+      return;
+    }
+
+    const payload = {
+      name,
+      category,
+      gender,
+      price: Number(price),
+      originalPrice: originalPrice ? Number(originalPrice) : null,
+      badge: badge || null,
+      description,
+      isActive,
+      images,
+      sizes,
+    };
+
+    const saveBtn = document.getElementById("modal-save") as HTMLButtonElement;
+    const originalLabel = saveBtn.textContent;
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Menyimpan…";
+
+    try {
+      const res = await adminApiFetch(
+        id ? `${apiUrl}/api/products/${id}` : `${apiUrl}/api/products`,
+        {
+          method: id ? "PATCH" : "POST",
+          body: JSON.stringify(payload),
+        }
+      );
+      const json = await res.json();
+
+      if (!res.ok) {
+        showFormError(json.error ?? "Gagal menyimpan produk.");
+        return;
+      }
+
+      window.showToast?.(json.message ?? "Produk berhasil disimpan");
+      closeModal("product-modal");
+      await loadProducts();
+    } catch (err) {
+      console.error("[modal-save] gagal fetch backend:", err);
+      showFormError("Tidak bisa terhubung ke server. Coba lagi.");
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = originalLabel;
+    }
+  });
+
+  // ─── Delete ────────────────────────────────────────────────────
+  document.getElementById("delete-cancel")?.addEventListener("click", () => {
+    productBeingDeleted = null;
+    closeModal("delete-modal");
+  });
+
+  document.getElementById("delete-confirm")?.addEventListener("click", async () => {
+    if (!productBeingDeleted) return;
+
+    const confirmBtn = document.getElementById("delete-confirm") as HTMLButtonElement;
+    const originalLabel = confirmBtn.textContent;
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = "Menghapus…";
+
+    try {
+      const res = await adminApiFetch(`${apiUrl}/api/products/${productBeingDeleted.id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+
+      if (!res.ok) {
+        window.showToast?.(json.error ?? "Gagal menghapus produk", "error");
+        return;
+      }
+
+      window.showToast?.(json.message ?? "Produk dihapus");
+      closeModal("delete-modal");
+      await loadProducts();
+    } catch (err) {
+      console.error("[delete-confirm] gagal fetch backend:", err);
+      window.showToast?.("Tidak bisa terhubung ke server", "error");
+    } finally {
+      productBeingDeleted = null;
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = originalLabel;
+    }
+  });
+
+  // ─── Export PDF ────────────────────────────────────────────────
+  document.getElementById("btn-export-pdf")?.addEventListener("click", () => {
+    exportTableToPDF("products-table", {
+      title: "Daftar Produk",
+      subtitle: "Katalog produk STRIDE",
+    });
+  });
+
+  // ─── Init ──────────────────────────────────────────────────────
+  loadProducts();
+</script>
